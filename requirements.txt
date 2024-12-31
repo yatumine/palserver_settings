@@ -1,0 +1,9 @@
+pyinstaller
+PySide6
+qtawesome
+pillow
+requests
+
+discord.py
+psutil
+python-dotenv

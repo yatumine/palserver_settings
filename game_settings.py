@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import json
 import configparser
@@ -35,39 +36,51 @@ class GameSettings(QDialog):
         self.init_ui()
 
     def load_settings_file_path(self):
-        """設定ファイルパスを内部設定から読み込む。存在しない場合はユーザーに選択させる。"""
-        try:
-            file_path = Config.get("settings_file_path")
-            # 空文字か判定する
-            if file_path:
-                return file_path
-        except json.JSONDecodeError:
-            QMessageBox.warning(self, "エラー", "無効な設定ファイルが検出されました。設定をリセットします。")
+        """
+        初回設定の流れ:
+        1. settings_file_pathが空なら初期設定に進む。
+        2. ユーザーにINIファイルを指定させる。
+        3. AppConfig.get('default_inifile_name')だった場合、指定の場所にコピー。
+        4. コピー後にsettings_file_pathを更新する。
+        """
+        file_path = Config.get("settings_file_path", "")
 
-        QMessageBox.information(self, "情報", f"初回起動です。{AppConfig.get('inifile_name', 'INI')}ファイルを選択してください。")
-        return self.ask_user_for_file_path()
+        if not file_path:
+            QMessageBox.information(None, "情報", f"初回起動です。INIファイルを選択してください。\n{AppConfig.get('default_inifile_name')}を選択した場合、PalWorldServerSetting.iniをコピーして作成します。")
 
-    def ask_user_for_file_path(self):
-        """ユーザーにファイルパスを指定させ、内部設定に保存する。"""
-        default_directory = AppConfig.get('install_dir', os.path.expanduser("~"))  # 初期ディレクトリを指定
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, f"{AppConfig.get('inifile_name', 'INI')}ファイルを選択",
-            default_directory,  # 初期ディレクトリ
-            "INI Files (*.ini);;All Files (*)"
-        )
-        if file_path:
-            self.save_settings_file_path(file_path)
-            return file_path
+            default_directory = AppConfig.get("install_dir", os.path.expanduser("~"))
+            file_path, _ = QFileDialog.getOpenFileName(
+                None, "INIファイルを選択", default_directory, "INIファイル (*.ini);;すべてのファイル (*)"
+            )
+
+            if not file_path:
+                QMessageBox.critical(None, "エラー", "ファイルが選択されていません。終了します。")
+                exit(1)
+
+        config_subpath = AppConfig.get("config_subpath")
+        config_directory = os.path.join(AppConfig.get("install_dir", ""), *config_subpath.split("/"))
+        os.makedirs(config_directory, exist_ok=True)
+
+        if os.path.basename(file_path) == AppConfig.get("default_inifile_name"):
+            new_file_path = os.path.join(config_directory, AppConfig.get("inifile_name"))
+            QMessageBox.information(None, "通知", f"{AppConfig.get('default_inifile_name')}を{new_file_path}にコピーします。")
+            try:
+                shutil.copy(file_path, new_file_path)
+                QMessageBox.information(None, "成功", f"{new_file_path}にコピーしました。")
+                settings_file_path = new_file_path
+            except Exception as e:
+                QMessageBox.critical(None, "エラー", f"INIファイルのコピーに失敗しました: {str(e)}")
+                exit(1)
+            try:
+                Config.set("settings_file_path", settings_file_path)
+                QMessageBox.information(None, "成功", "設定ファイルパスが保存されました。")
+            except Exception as e:
+                QMessageBox.critical(None, "エラー", f"設定の保存に失敗しました: {str(e)}")
+                exit(1)
         else:
-            QMessageBox.critical(self, "エラー", "ファイルが選択されていません。終了します。")
-            exit(1)
+            settings_file_path = file_path
 
-    def save_settings_file_path(self, file_path):
-        """指定された設定ファイルパスを内部設定に保存する。"""
-        try:
-            Config.set("settings_file_path", file_path)
-        except Exception as e:
-            QMessageBox.critical(self, "エラー", f"設定の保存に失敗しました: {str(e)}")
+        return settings_file_path
 
     def load_key_map(self):
         """Keyマッピングファイルを読み込む。存在しない場合は空の辞書を返す。"""
@@ -238,7 +251,8 @@ class GameSettings(QDialog):
                 self.config.read_file(f)
         except UnicodeDecodeError:
             QMessageBox.critical(self, "エラー", "設定ファイルのデコードに失敗しました。UTF-8エンコードを確認してください。")
-            exit(1)
+        except FileNotFoundError:
+            QMessageBox.critical(self, "エラー", f"設定ファイルが見つかりません: {self.file_path}") 
 
         self.update_form()
 

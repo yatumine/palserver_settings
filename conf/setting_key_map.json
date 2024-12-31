@@ -5,6 +5,20 @@
         "non_double_quotation": true,
         "hidden": true
     },
+    "RandomizerType": {
+        "name": "ランダマイザーの設定（パルの出現をランダム化）",
+        "description": "パルの出現をランダム化",
+        "select": {
+            "None": "ランダマイザーの設定なし",
+            "Region": "地域をランダム化するように設定",
+            "All": "すべてをランダム化するように設定"
+        }
+    },
+    "RandomizerSeed": {
+        "name": "RandomizerSeed",
+        "description": "",
+        "default": ""
+    },
     "AdminPassword": {
         "name": "サーバーの管理者権限のパスワード",
         "description": "サーバーの管理者権限を取得するのに使用するパスワード",
@@ -14,6 +28,11 @@
         "name": "接続を許可するプラットフォーム",
         "description": "Steam または Xbox または Mac (デフォルト: Steam)",
         "default": "Steam"
+    },
+    "BaseCampMaxNum": {
+        "name": "最大拠点数 デフォルト128",
+        "description": "",
+        "default": 128
     },
     "BaseCampMaxNumInGuild": {
         "name": "ギルド当たりの最大拠点数 デフォルト3 (最大10)",
@@ -89,6 +108,11 @@
             "True": "True"
         }
     },
+    "BuildObjectHpRate": {
+        "name": "建築物のHP倍率",
+        "description": "",
+        "default": 1.000000
+    },
     "BuildObjectDamageRate": {
         "name": "建築物に対するダメージ倍率",
         "description": "",
@@ -146,6 +170,14 @@
     "GuildPlayerMaxNum": {
         "name": "ギルドの最大人数",
         "description": 20
+    },
+    "EnablePredatorBossPal": {
+        "name": "プレデターボスパルを有効にする",
+        "description": "",
+        "select": {
+            "True": "True",
+            "False": "False"
+        }
     },
     "MaxBuildingLimitNum": {
         "name": "プレイヤーごとに建築物数制限 (0 = 無制限)",
@@ -309,6 +341,11 @@
         "name": "作業速度",
         "description": "",
         "default": 1.000000
+    },
+    "AutoSaveSpan": {
+        "name": "自動保存の間隔（単位：秒）",
+        "description": "",
+        "default": 30.000000
     },
     "bIsPvP": {
         "name": "PvPの可否",

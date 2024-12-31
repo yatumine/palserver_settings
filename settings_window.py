@@ -6,6 +6,7 @@ from PySide6.QtCore import Qt
 import os
 from lib.appconfig import AppConfig
 from lib.config import Config
+from game_settings import GameSettings
 
 class SettingsWindow(QDialog):
     def __init__(self, parent=None):
@@ -86,7 +87,9 @@ class SettingsWindow(QDialog):
 
             # 親ウィンドウをリロード
             if self.parent():
-                self.parent().load_config()
+                # 親ウィンドウによってコールを変える
+                if isinstance(self.parent(), GameSettings):
+                    self.parent().reload_settings()
 
             self.accept()  # モーダルダイアログを閉じる
         except Exception as e:
