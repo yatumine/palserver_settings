@@ -13,13 +13,8 @@ import qtawesome as qta
 import requests
 import zipfile
 import shutil
-
-
-def resource_path(relative_path):
-    """PyInstallerで同梱されたリソースファイルの絶対パスを取得"""
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.getcwd(), relative_path)
+from lib.appconfig import AppConfig
+from lib.config import Config
 
 class SettingsApp(QMainWindow):
     def __init__(self):
@@ -27,17 +22,35 @@ class SettingsApp(QMainWindow):
 
         # アプリケーションアイコンを設定
         app_icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images", "256.ico")
-        self.setWindowIcon(QIcon(app_icon_path))
+        icon = QIcon(app_icon_path)
+        if icon.isNull():
+            QMessageBox.warning(None, "エラー", "アイコンの読み込みに失敗しました: " + app_icon_path)
+        self.setWindowIcon(icon)
+
+        self.internal_config_path = Config.get_config_path()
+        self.config = self.load_config()
 
         # steamcmd の設定を確認
         self.check_and_setup_steamcmd()
 
-        self.internal_config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
-
         # ConfigParser をカスタマイズ
-        self.config = configparser.RawConfigParser()
-        self.config.optionxform = str  # キーの小文字変換を無効化
         self.init_ui()
+
+    def load_config(self):
+        """設定ファイルを読み込む"""
+        if os.path.exists(self.internal_config_path):
+            try:
+                with open(self.internal_config_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except json.JSONDecodeError:
+                QMessageBox.warning(None, "エラー", "無効な設定ファイルです。新しい設定を作成します。")
+        # デフォルトの設定を作成
+        default_config = {
+            "steamcmd_path": ""
+        }
+        Config.save_config(default_config)
+        QMessageBox.information(None, "成功", "config.json を初期化しました。")
+        return default_config
 
     def open_settings_window(self):
         """設定画面を開く"""
@@ -83,7 +96,6 @@ class SettingsApp(QMainWindow):
 
         self.setCentralWidget(central_widget)
 
-
     def check_and_setup_steamcmd(self):
         """SteamCMDのディレクトリを確認し、必要なら設定"""
         steamcmd_path = self.config.get("steamcmd_path", "")
@@ -92,17 +104,20 @@ class SettingsApp(QMainWindow):
             reply = QMessageBox.question(
                 self,
                 "SteamCMD 設定",
-                "SteamCMD のディレクトリが設定されていません。\n\nURLからインストールしますか？",
+                "SteamCMD のディレクトリが設定されていません。\n\nSteamCMDからインストールしますか？\n  「Yes」 を選択すると C:\\steamcmd にインストールされます。\n  「No」 を選択するとディレクトリ選択ダイアログが表示されます。",
                 QMessageBox.Yes | QMessageBox.No
             )
 
             if reply == QMessageBox.Yes:
                 self.download_and_install_steamcmd()
+                steamcmd_path = "C:\\steamcmd"
             else:
-                self.ask_user_for_steamcmd_path()
+                steamcmd_path = self.ask_user_for_steamcmd_path()
 
-            self.save_steamcmd_path(steamcmd_path)
-
+            if steamcmd_path:
+                self.save_steamcmd_path(steamcmd_path)
+            else:
+                QMessageBox.warning(None, "警告", "SteamCMD の設定が完了していません。")
 
     def download_and_install_steamcmd(self):
         """SteamCMD をダウンロードして C:\\steamcmd にインストール"""
@@ -123,31 +138,25 @@ class SettingsApp(QMainWindow):
                 zip_ref.extractall(install_dir)
 
             os.remove(zip_path)
-            QMessageBox.information(self, "成功", "SteamCMD をインストールしました！")
+            QMessageBox.information(None, "成功", "SteamCMD をインストールしました！")
 
         except Exception as e:
-            QMessageBox.critical(self, "エラー", f"SteamCMD のインストールに失敗しました: {str(e)}")
-
+            QMessageBox.critical(None, "エラー", f"SteamCMD のインストールに失敗しました: {str(e)}")
 
     def ask_user_for_steamcmd_path(self):
         """ユーザーに SteamCMD のパスを選択させる"""
-        dir_path = QFileDialog.getExistingDirectory(self, "SteamCMD ディレクトリを選択")
+        dir_path = QFileDialog.getExistingDirectory(None, "SteamCMD ディレクトリを選択")
         if dir_path:
-            self.config["steamcmd_path"] = dir_path
+            return dir_path
         else:
-            QMessageBox.warning(self, "警告", "SteamCMD のパスが選択されていません。")
-
+            QMessageBox.warning(None, "警告", "SteamCMD のパスが選択されていません。")
+            return None
 
     def save_steamcmd_path(self, path):
         """SteamCMD のパスを保存"""
         self.config["steamcmd_path"] = path
-        try:
-            with open(self.internal_config_path, 'w', encoding='utf-8') as f:
-                json.dump(self.config, f, indent=4)
-            QMessageBox.information(self, "成功", "SteamCMD のパスを保存しました！")
-        except Exception as e:
-            QMessageBox.critical(self, "エラー", f"SteamCMD パスの保存に失敗しました: {str(e)}")
-
+        Config.save_config(self.config)
+        QMessageBox.information(None, "成功", "SteamCMD のパスを保存しました！")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

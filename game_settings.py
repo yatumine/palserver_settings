@@ -10,15 +10,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIntValidator, QDoubleValidator, QIcon
 import qtawesome as qta
-
-SETTINGS_SECTION = '/Script/Pal.PalGameWorldSettings'
-OPTION_SETTINGS_KEY = 'OptionSettings'
-
-def resource_path(relative_path):
-    """PyInstallerで同梱されたリソースファイルの絶対パスを取得"""
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.getcwd(), relative_path)
+from lib.appconfig import AppConfig
+from lib.config import Config
 
 class GameSettings(QDialog):
     def __init__(self, parent=None):
@@ -27,13 +20,11 @@ class GameSettings(QDialog):
         self.setFixedSize(800, 600)
         self.setModal(True)  # モーダルウィンドウに設定
 
-        # アプリケーションアイコンを設定
-        app_icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images", "256.ico")
-        self.setWindowIcon(QIcon(app_icon_path))
-
-        self.internal_config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
         self.key_map_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "conf", "setting_key_map.json")
         self.file_path = self.load_settings_file_path()
+
+        self.setting_section = AppConfig.get("setting_section")
+        self.option_settings_key = AppConfig.get("option_settings_key")
 
         # ConfigParser をカスタマイズ
         self.config = configparser.RawConfigParser()
@@ -45,23 +36,24 @@ class GameSettings(QDialog):
 
     def load_settings_file_path(self):
         """設定ファイルパスを内部設定から読み込む。存在しない場合はユーザーに選択させる。"""
-        if os.path.exists(self.internal_config_path):
-            try:
-                with open(self.internal_config_path, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    file_path = data.get("settings_file_path", "")
-                    if os.path.exists(file_path):
-                        return file_path
-            except json.JSONDecodeError:
-                QMessageBox.warning(self, "エラー", "無効な config.json が検出されました。設定をリセットします。")
+        try:
+            file_path = Config.get("settings_file_path")
+            # 空文字か判定する
+            if file_path:
+                return file_path
+        except json.JSONDecodeError:
+            QMessageBox.warning(self, "エラー", "無効な設定ファイルが検出されました。設定をリセットします。")
 
-        QMessageBox.information(self, "情報", "初回起動です。PalWorldSettings.ini ファイルを選択してください。")
+        QMessageBox.information(self, "情報", f"初回起動です。{AppConfig.get('inifile_name', 'INI')}ファイルを選択してください。")
         return self.ask_user_for_file_path()
 
     def ask_user_for_file_path(self):
         """ユーザーにファイルパスを指定させ、内部設定に保存する。"""
+        default_directory = AppConfig.get('install_dir', os.path.expanduser("~"))  # 初期ディレクトリを指定
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "PalWorldSettings.ini ファイルを選択", "", "INI Files (*.ini);;All Files (*)"
+            self, f"{AppConfig.get('inifile_name', 'INI')}ファイルを選択",
+            default_directory,  # 初期ディレクトリ
+            "INI Files (*.ini);;All Files (*)"
         )
         if file_path:
             self.save_settings_file_path(file_path)
@@ -73,8 +65,7 @@ class GameSettings(QDialog):
     def save_settings_file_path(self, file_path):
         """指定された設定ファイルパスを内部設定に保存する。"""
         try:
-            with open(self.internal_config_path, 'w', encoding='utf-8') as f:
-                json.dump({"settings_file_path": file_path}, f, indent=4)
+            Config.set("settings_file_path", file_path)
         except Exception as e:
             QMessageBox.critical(self, "エラー", f"設定の保存に失敗しました: {str(e)}")
 
@@ -144,9 +135,9 @@ class GameSettings(QDialog):
 
         self.inputs.clear()
 
-        if SETTINGS_SECTION in self.config:
-            settings = self.config[SETTINGS_SECTION]
-            option_settings = settings.get(OPTION_SETTINGS_KEY, None)
+        if self.setting_section in self.config:
+            settings = self.config[self.setting_section]
+            option_settings = settings.get(self.option_settings_key, None)
 
             if option_settings:
                 option_items = option_settings.strip('()').split(',')
@@ -202,12 +193,12 @@ class GameSettings(QDialog):
                     self.inputs[key] = input_field
 
     def save_settings(self):
-        if SETTINGS_SECTION not in self.config:
+        if self.setting_section not in self.config:
             return
 
-        settings = self.config[SETTINGS_SECTION]
+        settings = self.config[self.setting_section]
 
-        original_option_settings = settings.get(OPTION_SETTINGS_KEY, "").strip("()")
+        original_option_settings = settings.get(self.option_settings_key, "").strip("()")
         original_items = {}
         if original_option_settings:
             for item in original_option_settings.split(","):
@@ -231,7 +222,7 @@ class GameSettings(QDialog):
                 original_items[key] = f"\"{value}\""
 
         updated_option_settings = [f"{key}={value}" for key, value in original_items.items()]
-        settings[OPTION_SETTINGS_KEY] = f"({','.join(updated_option_settings)})"
+        settings[self.option_settings_key] = f"({','.join(updated_option_settings)})"
 
         try:
             with open(self.file_path, 'w', encoding='utf-8') as configfile:

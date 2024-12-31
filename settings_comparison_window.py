@@ -7,10 +7,10 @@ from PySide6.QtCore import Qt
 import configparser
 from lib.copyable_label import CopyableLabel
 from game_settings import GameSettings
+from lib.appconfig import AppConfig
+from lib.config import Config
 
 class SettingsComparisonWindow(QDialog):
-    SETTINGS_SECTION = '/Script/Pal.PalGameWorldSettings'
-    OPTION_SETTINGS_KEY = 'OptionSettings'
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -18,10 +18,13 @@ class SettingsComparisonWindow(QDialog):
         self.setFixedSize(800, 600)
         self.setModal(True)
 
-        self.internal_config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+        self.internal_config_path = Config.get_config_path()
         self.key_map_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "conf", "setting_key_map.json")
         self.file_path = self.load_settings_file_path()
 
+        self.setting_section = AppConfig.get("setting_section")
+        self.option_settings_key = AppConfig.get("option_settings_key")
+        
         # ConfigParser をカスタマイズ
         self.config = configparser.RawConfigParser()
         self.config.optionxform = str  # キーの小文字変換を無効化
@@ -67,7 +70,7 @@ class SettingsComparisonWindow(QDialog):
         self.config.read(self.file_path, encoding='utf-8')
 
         # 現在のキーを取得
-        option_settings = self.config.get(self.SETTINGS_SECTION, self.OPTION_SETTINGS_KEY, fallback="")
+        option_settings = self.config.get(self.setting_section, self.option_settings_key, fallback="")
         current_keys = {item.split('=')[0].strip() for item in option_settings.strip('()').split(',') if '=' in item}
 
         # 未定義キーを計算
@@ -128,10 +131,10 @@ class SettingsComparisonWindow(QDialog):
         self.scroll_area.ensureVisible(0, 0)  # スクロールをトップに移動
 
     def add_key(self, key):
-        if self.SETTINGS_SECTION not in self.config:
-            self.config.add_section(self.SETTINGS_SECTION)
+        if self.setting_section not in self.config:
+            self.config.add_section(self.setting_section)
 
-        current_values = self.config.get(self.SETTINGS_SECTION, self.OPTION_SETTINGS_KEY, fallback="")
+        current_values = self.config.get(self.setting_section, self.option_settings_key, fallback="")
         updated_values = current_values.strip('()')
 
         # デフォルト値を決定
@@ -147,7 +150,7 @@ class SettingsComparisonWindow(QDialog):
 
         updated_values = f"{updated_values},{key}={default_value}" if updated_values else f"{key}={default_value}"
 
-        self.config.set(self.SETTINGS_SECTION, self.OPTION_SETTINGS_KEY, f"({updated_values})")
+        self.config.set(self.setting_section, self.option_settings_key, f"({updated_values})")
 
         with open(self.file_path, 'w', encoding='utf-8') as f:
             self.config.write(f)
@@ -164,10 +167,10 @@ class SettingsComparisonWindow(QDialog):
             parent = parent.parent()  # 次の親を取得
 
     def add_all_missing_keys(self):
-        if self.SETTINGS_SECTION not in self.config:
-            self.config.add_section(self.SETTINGS_SECTION)
+        if self.setting_section not in self.config:
+            self.config.add_section(self.setting_section)
 
-        current_values = self.config.get(self.SETTINGS_SECTION, self.OPTION_SETTINGS_KEY, fallback="")
+        current_values = self.config.get(self.setting_section, self.option_settings_key, fallback="")
         updated_values = current_values.strip('()')
 
         for key in self.missing_keys:
@@ -184,7 +187,7 @@ class SettingsComparisonWindow(QDialog):
 
             updated_values = f"{updated_values},{key}={default_value}" if updated_values else f"{key}={default_value}"
 
-        self.config.set(self.SETTINGS_SECTION, self.OPTION_SETTINGS_KEY, f"({updated_values})")
+        self.config.set(self.setting_section, self.option_settings_key, f"({updated_values})")
 
         with open(self.file_path, 'w', encoding='utf-8') as f:
             self.config.write(f)

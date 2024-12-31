@@ -8,7 +8,7 @@ pip install pyinstaller PySide6 qtawesome pillow requests
 ## build
 
 ```
-pyinstaller --onefile --windowed --clean --noupx --hidden-import=PySide6.QtGui --hidden-import=PySide6.QtWidgets --icon=images/256.ico setting_gui.py
+pyinstaller --onefile --windowed --clean --noupx --hidden-import=PySide6.QtGui --hidden-import=PySide6.QtWidgets --icon=images/256.ico --add-data "conf/app.json;conf" --name ServerSetting main.py
 ```
 
 ## アイコンの一覧

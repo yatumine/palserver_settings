@@ -1,3 +1,7 @@
 build/
 dist/
 config.js
+.venv
+*__pycache__
+PalWorldSettings.ini
+パルワールド

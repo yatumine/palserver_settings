@@ -4,6 +4,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 import os
+from lib.appconfig import AppConfig
+from lib.config import Config
 
 class SettingsWindow(QDialog):
     def __init__(self, parent=None):
@@ -20,7 +22,7 @@ class SettingsWindow(QDialog):
             self.move(x, y)
 
         # 設定ファイルのパスを保存するための内部変数
-        self.internal_config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+        self.internal_config_path = Config.get_config_path()
         self.init_ui()
 
     def init_ui(self):
@@ -60,15 +62,8 @@ class SettingsWindow(QDialog):
         self.load_current_path()
 
     def load_current_path(self):
-        """現在の設定ファイルパスを読み込む"""
-        if os.path.exists(self.internal_config_path):
-            try:
-                with open(self.internal_config_path, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    current_path = data.get("settings_file_path", "")
-                    self.file_path_field.setText(current_path)
-            except Exception as e:
-                QMessageBox.warning(self, "エラー", f"現在のパスを読み込めませんでした: {e}")
+        """設定ファイルから表示用データを読み込む"""
+        self.file_path_field.setText(Config.get("settings_file_path", ""))
 
     def select_file(self):
         """ファイル選択ダイアログを表示"""
@@ -86,13 +81,12 @@ class SettingsWindow(QDialog):
             return
 
         try:
-            with open(self.internal_config_path, 'w', encoding='utf-8') as f:
-                json.dump({"settings_file_path": new_path}, f, indent=4)
+            Config.set("settings_file_path", new_path)
             QMessageBox.information(self, "成功", "設定が正常に保存されました。")
 
             # 親ウィンドウをリロード
             if self.parent():
-                self.parent().reload_settings()
+                self.parent().load_config()
 
             self.accept()  # モーダルダイアログを閉じる
         except Exception as e:
