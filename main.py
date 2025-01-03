@@ -291,7 +291,14 @@ class SettingsApp(QMainWindow):
             QMessageBox.warning(self, "エラー", "Discordの設定が完了していません。\n設定画面から設定を行ってください。")
             # 設定画面を開く
             self.open_settings_window()
+
         try:
+            # サーバーが既に起動しているか確認
+            if asyncio.run(check_server_status()):
+                QMessageBox.warning(self, "サーバー重複起動", f"{self.server_exe} は既に起動しています。")
+                logging.warning(f"{self.server_exe} is already running.")
+                return
+
             # 非同期関数を同期的に実行
             asyncio.run(self.start_server_async())
         except Exception as e:
@@ -300,7 +307,12 @@ class SettingsApp(QMainWindow):
     async def start_server_async(self):
         """サーバー起動処理"""
         result = await start_server(self.server_path, self.server_exe)
-        QMessageBox.information(self, "サーバー起動", result.title)
+        if result:
+            QMessageBox.information(self, "サーバー起動", result.title)
+            logging.info(f"Server started successfully: {self.server_exe}")
+        else:
+            QMessageBox.warning(self, "サーバー起動失敗", f"{self.server_exe} を起動できませんでした。")
+            logging.warning(f"Failed to start server: {self.server_exe}")
 
     def on_stop_server_clicked(self):
         """サーバー起動ボタンがクリックされたときの処理"""
