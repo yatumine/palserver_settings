@@ -15,6 +15,9 @@ class DiscordBot:
         self.server_cmd_exe = server_cmd_exe
         self.server_name = server_exe.split(".")[0]
 
+        # 状態を追跡するための変数を初期化
+        self.last_alert_level = None
+
         # Discordクライアントを初期化
         self.client = discord.Client(
             intents=discord.Intents.default(),
@@ -71,58 +74,70 @@ class DiscordBot:
     @tasks.loop(minutes=1)  # 毎分チェック
     async def memory_check_task(self):
         memory_usage = psutil.virtual_memory().percent
+        alert_level = None
+
+        # メモリ使用率に応じてアラートレベルを設定
         if memory_usage > 90:
+            alert_level = "critical"
+        elif memory_usage > 80:
+            alert_level = "warning_high"
+        elif memory_usage > 70:
+            alert_level = "warning_low"
+        else:
+            alert_level = "normal"
+
+        # 状態が変わった場合のみメッセージを送信
+        if alert_level != self.last_alert_level:
+            self.last_alert_level = alert_level
             channel = self.client.get_channel(self.channel_id)
-            if channel:
+
+            if alert_level == "critical":
                 embed = discord.Embed(
                     title="高負荷警告",
                     description=f"サーバーのメモリ使用率が {memory_usage}% を超えました。\nサーバーの状態を確認してください。",
                     color=0xff0000
                 )
-                await channel.send(embed=embed)
-        elif memory_usage > 80:
-            channel = self.client.get_channel(self.channel_id)
-            if channel:
-                embed = discord.Embed(
-                    title="メモリ使用量警告",
-                    description=f"サーバーのメモリ使用率が {memory_usage}% を超えました。",
-                    color=0xff0000
-                )
-                await channel.send(embed=embed)
-        elif memory_usage > 70:
-            channel = self.client.get_channel(self.channel_id)
-            if channel:
+            elif alert_level == "warning_high":
                 embed = discord.Embed(
                     title="メモリ使用量警告",
                     description=f"サーバーのメモリ使用率が {memory_usage}% を超えました。",
                     color=0xffa500
                 )
+            elif alert_level == "warning_low":
+                embed = discord.Embed(
+                    title="メモリ使用量警告",
+                    description=f"サーバーのメモリ使用率が {memory_usage}% を超えました。",
+                    color=0xffff00
+                )
+            elif alert_level == "normal":
+                embed = discord.Embed(
+                    title="メモリ使用量正常",
+                    description="サーバーのメモリ使用率が正常な範囲に戻りました。",
+                    color=0x00ff00
+                )
+            else:
+                return  # その他のケースでは何もしない
+
+            if channel:
                 await channel.send(embed=embed)
 
     async def _on_ready(self):
         logging.info("Bot is ready")
         try:
-            # コマンドを同期
-            await self.tree.sync(guild=None)  # 全ギルドにコマンドを同期
-            logging.info("Commands synced successfully.")
+            await self.tree.sync()  # コマンドを同期
+            await self.client.wait_until_ready()
+            channel = self.client.get_channel(self.channel_id)  # チャンネルIDからチャンネルを取得
+            # メッセージを投稿する
+            embed = discord.Embed(
+                title="Botが起動しました",
+                description="コマンドの準備が整いました。必要なコマンドを入力してください。(/helpでコマンド一覧を表示)",
+                color=0x00ff00
+            )
+            await channel.send(embed=embed)
 
             # メモリ使用量を監視
             logging.info("Starting memory check task")
             self.memory_check_task.start()
-
-            # Botが起動した時の処理
-            await self.client.wait_until_ready()
-            
-            # 起動メッセージを送信
-            channel = self.client.get_channel(self.channel_id)
-            if channel:
-                embed = discord.Embed(
-                    title="Botが起動しました",
-                    description="コマンドの準備が整いました。必要なコマンドを入力してください。(/helpでコマンド一覧を表示)",
-                    color=0x00ff00
-                )
-                await channel.send(embed=embed)
-
         except Exception as e:
             logging.error(f"Error during on_ready: {e}")
 
