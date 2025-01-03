@@ -59,7 +59,6 @@ class DiscordBot:
             embed = await check_memory_usage()
             await interaction.response.send_message(embed=embed)
 
-        # ヘルプコマンドを追加
         @self.tree.command(name="help", description="利用可能なコマンド一覧を表示します")
         async def help_command(interaction: discord.Interaction):
             logging.info(f"Command executed: help by {interaction.user.name}")
