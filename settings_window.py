@@ -3,7 +3,6 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QLabel, QPushButton, QMessageBox, QHBoxLayout, QDialog, QLineEdit, QFileDialog, QCheckBox
 )
 from PySide6.QtCore import Qt
-import os
 from lib.appconfig import AppConfig
 from lib.config import Config
 from game_settings import GameSettings

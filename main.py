@@ -5,12 +5,12 @@ import subprocess
 import psutil
 import json
 from PySide6.QtWidgets import (
-    QApplication, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFormLayout,
-    QWidget, QMessageBox, QFileDialog, QScrollArea, QMainWindow, QComboBox,
-    QToolTip, QHBoxLayout, QToolButton
+    QApplication, QVBoxLayout, QPushButton, 
+    QWidget, QMessageBox, QFileDialog, QMainWindow,
+    QToolButton
 )
 from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtGui import QIntValidator, QDoubleValidator, QIcon
+from PySide6.QtGui import QIcon
 import qtawesome as qta
 import requests
 import zipfile

@@ -4,12 +4,12 @@ import sys
 import json
 import configparser
 from PySide6.QtWidgets import (
-    QApplication, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFormLayout,
+    QApplication, QVBoxLayout, QLabel, QLineEdit, QPushButton, 
     QWidget, QMessageBox, QFileDialog, QScrollArea, QDialog, QComboBox,
-    QToolTip, QHBoxLayout, QToolButton
+    QHBoxLayout, QToolButton
 )
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIntValidator, QDoubleValidator, QIcon
+from PySide6.QtGui import QIntValidator, QDoubleValidator
 import qtawesome as qta
 from lib.appconfig import AppConfig
 from lib.config import Config
