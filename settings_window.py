@@ -1,6 +1,6 @@
 import json
 from PySide6.QtWidgets import (
-    QVBoxLayout, QLabel, QPushButton, QMessageBox, QHBoxLayout, QDialog, QLineEdit, QFileDialog
+    QVBoxLayout, QLabel, QPushButton, QMessageBox, QHBoxLayout, QDialog, QLineEdit, QFileDialog, QCheckBox
 )
 from PySide6.QtCore import Qt
 import os
@@ -12,7 +12,7 @@ class SettingsWindow(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("設定")
-        self.setFixedSize(600, 300)  # ウィンドウサイズを固定
+        self.setFixedSize(600, 350)  # ウィンドウサイズを固定
         self.setModal(True)  # モーダルウィンドウに設定
 
         # 親ウィンドウの中央に配置
@@ -51,7 +51,6 @@ class SettingsWindow(QDialog):
         # Discord設定
         discord_label = QLabel("Discord Bot設定")
         discord_label.setMargin(0)
-        # ラベルを大項目としてスタイルを設定
         font = discord_label.font()
         font.setPointSize(12)
         font.setBold(True)
@@ -71,10 +70,16 @@ class SettingsWindow(QDialog):
         self.discord_channel_id_label.setMargin(0)
         layout.addWidget(self.discord_channel_id_label)
         self.discord_channel_id_field = QLineEdit()
-        self.discord_channel_id_field.setPlaceholderText("Discord チャンネルIDのトークンを入力")
+        self.discord_channel_id_field.setPlaceholderText("Discord チャンネルIDを入力")
         layout.addWidget(self.discord_channel_id_field)
-        layout.addSpacing(20)
 
+        # DiscordBot起動時設定
+        self.discord_autostart_label = QLabel("起動時にDiscordBotを起動する")
+        self.discord_autostart_label.setMargin(0)
+        layout.addWidget(self.discord_autostart_label)
+        self.discord_autostart_checkbox = QCheckBox("起動する")
+        layout.addWidget(self.discord_autostart_checkbox)
+        layout.addSpacing(20)
 
         # 保存ボタン
         save_button = QPushButton("保存して戻る")
@@ -89,6 +94,7 @@ class SettingsWindow(QDialog):
         self.file_path_field.setText(Config.get("settings_file_path", ""))
         self.discord_token_field.setText(Config.get("discord_token", ""))
         self.discord_channel_id_field.setText(Config.get("discord_channel_id", ""))
+        self.discord_autostart_checkbox.setChecked(Config.get("discord_autostart", False))
 
     def select_file(self):
         """ファイル選択ダイアログを表示"""
@@ -103,20 +109,20 @@ class SettingsWindow(QDialog):
         # Discord設定を保存
         Config.set("discord_token", self.discord_token_field.text())
         Config.set("discord_channel_id", self.discord_channel_id_field.text())
+        Config.set("discord_autostart", self.discord_autostart_checkbox.isChecked())
 
         # ファイルパスを保存
         new_path = self.file_path_field.text()
         if not new_path:
             QMessageBox.warning(self, "エラー", "有効なファイルパスを選択または入力してください。")
             return
-        
+
         try:
             Config.set("settings_file_path", new_path)
             QMessageBox.information(self, "成功", "設定が正常に保存されました。")
 
             # 親ウィンドウをリロード
             if self.parent():
-                # 親ウィンドウによってコールを変える
                 if isinstance(self.parent(), GameSettings):
                     self.parent().reload_settings()
 
@@ -126,7 +132,6 @@ class SettingsWindow(QDialog):
 
     def closeEvent(self, event):
         """ウィンドウが閉じられるときに実行される処理"""
-        """親画面をリロードする"""
         if self.parent():
             if isinstance(self.parent(), GameSettings):
                 self.parent().reload_settings()

@@ -57,6 +57,10 @@ class SettingsApp(QMainWindow):
         logging.info("initializing UI...")
         self.init_ui()
 
+        # 起動時にDiscordBotを起動するが有効なら起動
+        if Config.get("discord_autostart", False):
+            self.on_start_discord_bot()
+
         logging.info("SettingsApp initialized.")
 
 
