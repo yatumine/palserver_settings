@@ -17,6 +17,7 @@ class DiscordBot:
 
         # 状態を追跡するための変数を初期化
         self.last_alert_level = None
+        self.last_server_status = None
 
         # Discordクライアントを初期化
         self.client = discord.Client(
@@ -121,6 +122,31 @@ class DiscordBot:
             if channel:
                 await channel.send(embed=embed)
 
+    @tasks.loop(minutes=1)  # サーバー状態の監視
+    async def server_status_check_task(self):
+        current_status = await check_server_status()
+
+        # サーバーの状態が変化した場合のみ通知
+        if current_status != self.last_server_status:
+            self.last_server_status = current_status
+            channel = self.client.get_channel(self.channel_id)
+
+            if current_status:
+                embed = discord.Embed(
+                    title="サーバー起動",
+                    description="サーバーが正常に起動しています。",
+                    color=0x00ff00
+                )
+            else:
+                embed = discord.Embed(
+                    title="サーバー停止",
+                    description="サーバーが停止しました。確認してください。",
+                    color=0xff0000
+                )
+
+            if channel:
+                await channel.send(embed=embed)
+
     async def _on_ready(self):
         logging.info("Bot is ready")
         try:
@@ -138,6 +164,10 @@ class DiscordBot:
             # メモリ使用量を監視
             logging.info("Starting memory check task")
             self.memory_check_task.start()
+
+            # サーバー状態を監視
+            logging.info("Starting server status check task")
+            self.server_status_check_task.start()
         except Exception as e:
             logging.error(f"Error during on_ready: {e}")
 
