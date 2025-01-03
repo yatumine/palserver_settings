@@ -33,16 +33,19 @@ class DiscordBot:
         # 既存のコマンドを登録
         @self.tree.command(name="start_server", description=f"{self.server_exe}を起動します")
         async def start_server_command(interaction: discord.Interaction):
+            logging.info(f"Command executed: start_server by {interaction.user.name}")
             embed = await start_server(self.server_path, self.server_exe)
             await interaction.response.send_message(embed=embed)
 
         @self.tree.command(name="stop_server", description=f"{self.server_exe}を停止します")
         async def stop_server_command(interaction: discord.Interaction):
+            logging.info(f"Command executed: stop_server by {interaction.user.name}")
             embed = await stop_server(self.server_cmd_exe, self.server_exe)
             await interaction.response.send_message(embed=embed)
 
         @self.tree.command(name="check_server", description="現在サーバーが起動しているかを調べます")
         async def check_server_command(interaction: discord.Interaction):
+            logging.info(f"Command executed: check_server by {interaction.user.name}")
             status = await check_server_status()
             embed = discord.Embed(
                 title="サーバーは起動中です" if status else "サーバーは停止中です",
@@ -52,12 +55,14 @@ class DiscordBot:
 
         @self.tree.command(name="check_memory", description="現在のサーバーのメモリ使用量を調べます")
         async def check_memory_command(interaction: discord.Interaction):
+            logging.info(f"Command executed: check_memory by {interaction.user.name}")
             embed = await check_memory_usage()
             await interaction.response.send_message(embed=embed)
 
         # ヘルプコマンドを追加
         @self.tree.command(name="help", description="利用可能なコマンド一覧を表示します")
         async def help_command(interaction: discord.Interaction):
+            logging.info(f"Command executed: help by {interaction.user.name}")
             embed = discord.Embed(
                 title="コマンド一覧",
                 description="以下は利用可能なコマンドの一覧です。",
