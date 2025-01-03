@@ -12,7 +12,7 @@ class SettingsWindow(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("設定")
-        self.setFixedSize(600, 175)  # ウィンドウサイズを固定
+        self.setFixedSize(600, 300)  # ウィンドウサイズを固定
         self.setModal(True)  # モーダルウィンドウに設定
 
         # 親ウィンドウの中央に配置
@@ -45,14 +45,36 @@ class SettingsWindow(QDialog):
         file_select_button = QPushButton("ファイル選択")
         file_select_button.clicked.connect(self.select_file)
         field_button_layout.addWidget(file_select_button)
-
         layout.addLayout(field_button_layout)
+        layout.addSpacing(10)
+
+        # Discord設定
+        discord_label = QLabel("Discord Bot設定")
+        discord_label.setMargin(0)
+        # ラベルを大項目としてスタイルを設定
+        font = discord_label.font()
+        font.setPointSize(12)
+        font.setBold(True)
+        discord_label.setFont(font)
+        layout.addWidget(discord_label)
+
+        # discord_tokenのテキスト入力フィールドを追加
+        self.discord_token_label = QLabel("Discord Botのトークン")
+        self.discord_token_label.setMargin(0)
+        layout.addWidget(self.discord_token_label)
+        self.discord_token_field = QLineEdit()
+        self.discord_token_field.setPlaceholderText("Discord Botのトークンを入力")
+        layout.addWidget(self.discord_token_field)
+
+        # discord_channel_idのテキスト入力フィールドを追加
+        self.discord_channel_id_label = QLabel("Discord チャンネルID")
+        self.discord_channel_id_label.setMargin(0)
+        layout.addWidget(self.discord_channel_id_label)
+        self.discord_channel_id_field = QLineEdit()
+        self.discord_channel_id_field.setPlaceholderText("Discord チャンネルIDのトークンを入力")
+        layout.addWidget(self.discord_channel_id_field)
         layout.addSpacing(20)
 
-        # 未定義の設定を確認するボタンを追加
-        compare_button = QPushButton("未定義の設定を確認する")
-        compare_button.clicked.connect(self.open_comparison_window)
-        layout.addWidget(compare_button)
 
         # 保存ボタン
         save_button = QPushButton("保存して戻る")
@@ -60,11 +82,13 @@ class SettingsWindow(QDialog):
         layout.addWidget(save_button)
 
         self.setLayout(layout)
-        self.load_current_path()
+        self.load_settings()
 
-    def load_current_path(self):
-        """設定ファイルから表示用データを読み込む"""
+    def load_settings(self):
+        """設定ファイルからデータを読み込む"""
         self.file_path_field.setText(Config.get("settings_file_path", ""))
+        self.discord_token_field.setText(Config.get("discord_token", ""))
+        self.discord_channel_id_field.setText(Config.get("discord_channel_id", ""))
 
     def select_file(self):
         """ファイル選択ダイアログを表示"""
@@ -75,12 +99,17 @@ class SettingsWindow(QDialog):
             self.file_path_field.setText(file_path)
 
     def save_and_return(self):
-        """設定ファイルのパスを保存し、ウィンドウを閉じる"""
+        """設定ファイルへ保存し、ウィンドウを閉じる"""
+        # Discord設定を保存
+        Config.set("discord_token", self.discord_token_field.text())
+        Config.set("discord_channel_id", self.discord_channel_id_field.text())
+
+        # ファイルパスを保存
         new_path = self.file_path_field.text()
         if not new_path:
             QMessageBox.warning(self, "エラー", "有効なファイルパスを選択または入力してください。")
             return
-
+        
         try:
             Config.set("settings_file_path", new_path)
             QMessageBox.information(self, "成功", "設定が正常に保存されました。")
@@ -95,21 +124,12 @@ class SettingsWindow(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "エラー", f"設定の保存に失敗しました: {e}")
 
-    def open_comparison_window(self):
-        """未定義の設定を確認する"""
-        try:
-            from settings_comparison_window import SettingsComparisonWindow
-            comparison_window = SettingsComparisonWindow(parent=self)
-            comparison_window.exec()
-        except ImportError as e:
-            QMessageBox.critical(self, "エラー", f"未定義の設定を確認するウィンドウを開けません: {e}")
-
-
     def closeEvent(self, event):
         """ウィンドウが閉じられるときに実行される処理"""
         """親画面をリロードする"""
         if self.parent():
-            self.parent().reload_settings()
+            if isinstance(self.parent(), GameSettings):
+                self.parent().reload_settings()
         else:
             QMessageBox.warning(self, "エラー", "親ウィンドウが設定されていません！")
 

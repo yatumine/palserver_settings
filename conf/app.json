@@ -2,6 +2,8 @@
     "app_id": 2394010,
     "install_dir": "C:\\palworld\\",
     "config_subpath": "Pal/Saved/Config/WindowsServer",
+    "server_exe": "PalServer.exe",
+    "server_cmd_exe": "PalServer-Win64-Shipping-Cmd.exe",
     "default_inifile_name": "DefaultPalWorldSettings.ini",
     "inifile_name": "PalWorldServerSetting.ini",
     "setting_section": "/Script/Pal.PalGameWorldSettings",

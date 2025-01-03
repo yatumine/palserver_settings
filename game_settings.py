@@ -120,11 +120,26 @@ class GameSettings(QDialog):
 
         layout.addWidget(self.scroll_area)
 
+        # 未定義の設定を確認するボタンを追加
+        compare_button = QPushButton("未定義の設定を確認する")
+        compare_button.clicked.connect(self.open_comparison_window)
+        layout.addWidget(compare_button)
+
         save_button = QPushButton("設定を保存")
         save_button.clicked.connect(self.save_settings)
         layout.addWidget(save_button)
 
         self.load_settings()
+
+
+    def open_comparison_window(self):
+        """未定義の設定を確認する"""
+        try:
+            from settings_comparison_window import SettingsComparisonWindow
+            comparison_window = SettingsComparisonWindow(parent=self)
+            comparison_window.exec()
+        except ImportError as e:
+            QMessageBox.critical(self, "エラー", f"未定義の設定を確認するウィンドウを開けません: {e}")
 
     def open_settings_window(self):
         """設定画面を開く"""
