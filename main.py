@@ -21,27 +21,40 @@ from discord_bot import DiscordBot
 from plugin_manager import PluginManager
 
 # ロギング設定
+def get_log_level():
+    try:
+        default_level = "INFO"
+        log_level = AppConfig.get("log_level", default_level)
+    except Exception as e:
+        print(f"Error reading log level from app.json: {e}")
+    return default_level
+
+# ログレベルを設定
+log_level = get_log_level()
+
 logging.basicConfig(
     filename="application.log",
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(message)s"
+    level=getattr(logging, log_level, logging.INFO),  # 取得したレベルを設定
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s"
 )
 logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 class SettingsApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        logging.info("initializing SettingsApp...")
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+        self.logger.info("initializing SettingsApp...")
 
         # アプリケーションアイコンを設定
         app_icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images", "256.ico")
         icon = QIcon(app_icon_path)
         if icon.isNull():
             QMessageBox.warning(None, "エラー", "アイコンの読み込みに失敗しました: " + app_icon_path)
-            logging.warning(f"Failed to load application icon from {app_icon_path}")
+            self.logger.warning(f"Failed to load application icon from {app_icon_path}")
         self.setWindowIcon(icon)
 
-        logging.info("loading config...")
+        self.logger.info("loading config...")
         self.server_path = AppConfig.get("install_dir")             # ゲームサーバーのパス（実行ファイルを含まない）
         self.server_exe = AppConfig.get("server_exe")               # EXEファイル名
         self.server_cmd_exe = AppConfig.get("server_cmd_exe")       # EXEファイル名
@@ -51,17 +64,17 @@ class SettingsApp(QMainWindow):
         self.config = self.load_config()
 
         # steamcmd の設定を確認
-        logging.info("checking and setting up steamcmd...")
+        self.logger.info("checking and setting up steamcmd...")
         self.check_and_setup_steamcmd()
 
         # プラグインマネージャーのインスタンス
-        logging.info("initializing PluginManager...")
+        self.logger.info("initializing PluginManager...")
         self.plugin_manager = PluginManager(self)
         # プラグインマネージャーの更新通知を受け取る
         self.plugin_manager.plugins_updated.connect(self.refresh_plugin_buttons)
 
         # UI 初期化
-        logging.info("initializing UI...")
+        self.logger.info("initializing UI...")
         self.init_ui()
         self.add_plugin_buttons()
 
@@ -69,17 +82,17 @@ class SettingsApp(QMainWindow):
         if Config.get("discord_autostart", False):
             self.on_start_discord_bot()
 
-        logging.info("SettingsApp initialized.")
+        self.logger.info("SettingsApp initialized.")
 
     def load_config(self):
         """設定ファイルを読み込む"""
         if os.path.exists(self.internal_config_path):
             try:
                 with open(self.internal_config_path, 'r', encoding='utf-8') as f:
-                    logging.info("loading config from " + self.internal_config_path)
+                    self.logger.info("loading config from " + self.internal_config_path)
                     return json.load(f)
             except json.JSONDecodeError:
-                logging.error("invalid config file. creating new config...")
+                self.logger.error("invalid config file. creating new config...")
                 QMessageBox.warning(None, "エラー", "無効な設定ファイルです。新しい設定を作成します。")
 
         # デフォルトの設定を作成
@@ -88,28 +101,28 @@ class SettingsApp(QMainWindow):
         }
         Config.save_config(default_config)
         QMessageBox.information(None, "成功", "config.json を初期化しました。")
-        logging.info("created new config file.")
+        self.logger.info("created new config file.")
         return default_config
 
     def open_settings_window(self):
         """設定画面を開く"""
         try:
-            logging.info("opening settings window...")
+            self.logger.info("opening settings window...")
             from settings_window import SettingsWindow
             self.settings_window = SettingsWindow(parent=self)
             self.settings_window.show()
         except ImportError:
             QMessageBox.critical(self, "エラー", "設定ウィンドウモジュールを読み込めませんでした。")
-            logging.error("failed to open settings window.")
+            self.logger.error("failed to open settings window.")
 
     def open_update_window(self):
-        logging.info("opening update window...")
+        self.logger.info("opening update window...")
         from update_server import ServerUpdateWindow
         update_window = ServerUpdateWindow(self)
         update_window.exec()
 
     def open_gamesetting_window(self):
-        logging.info("opening game settings window...")
+        self.logger.info("opening game settings window...")
         from game_settings import GameSettings
         window = GameSettings(self)
         window.exec()
@@ -118,7 +131,7 @@ class SettingsApp(QMainWindow):
             """
             プラグインマネージャーを開く
             """
-            logging.info("Opening PluginManager...")
+            self.logger.info("Opening PluginManager...")
             self.plugin_manager.show()
 
     def init_ui(self):
@@ -220,7 +233,7 @@ class SettingsApp(QMainWindow):
 
         except Exception as e:
             QMessageBox.critical(None, "エラー", f"SteamCMD のインストールに失敗しました: {str(e)}")
-            logging.error(f"Failed to download and install SteamCMD: {e}")
+            self.logger.error(f"Failed to download and install SteamCMD: {e}")
 
     def ask_user_for_steamcmd_path(self):
         """ユーザーに SteamCMD のパスを選択させる"""
@@ -336,28 +349,28 @@ class SettingsApp(QMainWindow):
 
         if not discord_token or not discord_channel_id:
             QMessageBox.warning(self, "エラー", "Discordの設定が完了していません。設定画面から設定を行ってください。")
-            logging.error("Discord settings are not configured.")
+            self.logger.error("Discord settings are not configured.")
             return
 
         if self.discord_bot_thread and self.discord_bot_thread.isRunning():
             QMessageBox.warning(self, "エラー", "Discord Bot は既に起動しています。")
-            logging.warning("Discord Bot is already running.")
+            self.logger.warning("Discord Bot is already running.")
             return
 
-        logging.info("starting Discord Bot...")
+        self.logger.info("starting Discord Bot...")
         try:
             self.discord_bot_thread = DiscordBotThread(discord_token, discord_channel_id, server_path, server_exe, server_cmd_exe, send_flag)
             self.discord_bot_thread.error_signal.connect(self.on_discord_bot_error)
             self.discord_bot_thread.start()
         except Exception as e:
             QMessageBox.critical(self, "エラー", f"Discord Bot 起動中にエラーが発生しました: {e}")
-            logging.error(f"Failed to start Discord Bot: {e}")
+            self.logger.error(f"Failed to start Discord Bot: {e}")
         QMessageBox.information(self, "Discord Bot", "Discord Bot を起動しました。")
 
     def on_discord_bot_error(self, error_message):
         """エラー発生時の処理"""
         QMessageBox.critical(self, "エラー", error_message)
-        logging.info("Discord Bot error: " + error_message)
+        self.logger.info("Discord Bot error: " + error_message)
 
             
     def on_start_server_clicked(self):
@@ -380,7 +393,7 @@ class SettingsApp(QMainWindow):
             # サーバーが既に起動しているか確認
             if asyncio.run(check_server_status(self.server_exe)):
                 QMessageBox.warning(self, "サーバー重複起動", f"{self.server_exe} は既に起動しています。")
-                logging.warning(f"{self.server_exe} is already running.")
+                self.logger.warning(f"{self.server_exe} is already running.")
                 return
 
             # 非同期関数を同期的に実行
@@ -393,10 +406,10 @@ class SettingsApp(QMainWindow):
         result = await start_server(self.server_path, self.server_exe)
         if result:
             QMessageBox.information(self, "サーバー起動", result.title)
-            logging.info(f"Server started successfully: {self.server_exe}")
+            self.logger.info(f"Server started successfully: {self.server_exe}")
         else:
             QMessageBox.warning(self, "サーバー起動失敗", f"{self.server_exe} を起動できませんでした。")
-            logging.warning(f"Failed to start server: {self.server_exe}")
+            self.logger.warning(f"Failed to start server: {self.server_exe}")
 
     def on_stop_server_clicked(self):
         """サーバー起動ボタンがクリックされたときの処理"""
@@ -431,7 +444,7 @@ class DiscordBotThread(QThread):
             self.discord_bot.start()
         except Exception as e:
             error_message = f"DiscordBotThread error: {e}"
-            logging.error(error_message)
+            self.logger.error(error_message)
             self.error_signal.emit(error_message)
 
 if __name__ == "__main__":

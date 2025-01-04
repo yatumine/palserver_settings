@@ -2,9 +2,11 @@ import os
 import json
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
 from PySide6.QtCore import Qt
+import logging
 
 class PluginBase:
     def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.config = {}
         self.config_path = self.get_default_config_path()
         self.load_config()

@@ -1,3 +1,4 @@
+import logging
 import json
 import os
 from PySide6.QtWidgets import (
@@ -13,6 +14,7 @@ from lib.config import Config
 class SettingsComparisonWindow(QDialog):
 
     def __init__(self, parent=None):
+        self.logger = logging.getLogger(self.__class__.__name__)
         super().__init__(parent)
         self.setWindowTitle("設定比較")
         self.setFixedSize(800, 600)
@@ -66,8 +68,13 @@ class SettingsComparisonWindow(QDialog):
             QMessageBox.critical(self, "エラー", "設定ファイルが見つかりませんでした。")
             return
 
-        # 設定を再読み込み
-        self.config.read(self.file_path, encoding='utf-8')
+        # BOMをスキップしてファイルを読み込む
+        try:
+            with open(self.file_path, 'r', encoding='utf-8-sig') as f:
+                self.config.read_file(f)
+        except configparser.MissingSectionHeaderError as e:
+            QMessageBox.critical(self, "エラー", f"設定ファイルのフォーマットが無効です: {e}")
+            return
 
         # 現在のキーを取得
         option_settings = self.config.get(self.setting_section, self.option_settings_key, fallback="")
@@ -219,10 +226,15 @@ class SettingsComparisonWindow(QDialog):
                 widget.deleteLater()  # メモリ解放
 
 if __name__ == "__main__":
-    from PySide6.QtWidgets import QApplication
-    import sys
+    try:
+        from PySide6.QtWidgets import QApplication
+        import sys
 
-    app = QApplication(sys.argv)
-    comparison_window = SettingsComparisonWindow()
-    comparison_window.show()
-    sys.exit(app.exec())
+        app = QApplication(sys.argv)
+        comparison_window = SettingsComparisonWindow()
+        comparison_window.show()
+        sys.exit(app.exec())
+    except Exception as e:
+        # trace
+        logging.error(f"Error occurred: {e}")
+        QMessageBox.critical(None, "エラー", f"エラーが発生しました: {e}")

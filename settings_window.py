@@ -1,4 +1,4 @@
-import json
+import logging
 from PySide6.QtWidgets import (
     QVBoxLayout, QLabel, QPushButton, QMessageBox, QHBoxLayout, QDialog, QLineEdit, QFileDialog, QCheckBox
 )
@@ -10,6 +10,8 @@ from game_settings import GameSettings
 class SettingsWindow(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.logger = logging.getLogger(self.__class__.__name__)
+        
         self.setWindowTitle("設定")
         self.setFixedSize(600, 550)  # ウィンドウサイズを固定
         self.setModal(True)  # モーダルウィンドウに設定
@@ -137,10 +139,15 @@ class SettingsWindow(QDialog):
                 self.parent().reload_settings()
 
 if __name__ == "__main__":
-    from PySide6.QtWidgets import QApplication
-    import sys
+    try:
+        from PySide6.QtWidgets import QApplication
+        import sys
 
-    app = QApplication(sys.argv)
-    main_window = SettingsWindow()
-    main_window.show()
-    sys.exit(app.exec())
+        app = QApplication(sys.argv)
+        main_window = SettingsWindow()
+        main_window.show()
+        sys.exit(app.exec())
+    except Exception as e:
+        # trace
+        logging.error(f"Error occurred: {e}")
+        QMessageBox.critical(None, "エラー", f"エラーが発生しました: {e}")

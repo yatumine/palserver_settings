@@ -13,9 +13,10 @@ class PluginManager(QMainWindow):
     plugins_updated = Signal()  # プラグイン更新を通知するシグナル
 
     def __init__(self, parent=None):
+        self.logger = logging.getLogger(self.__class__.__name__)
         super().__init__(parent)
         self.plugins = {}
-        logging.info("Initializing PluginManager...")
+        self.logger.info("Initializing PluginManager...")
         self.load_plugins()
         self.enabled_plugins = self.load_enabled_plugins()  # 有効化情報をロード
         self.init_ui()
@@ -67,10 +68,10 @@ class PluginManager(QMainWindow):
             exe_dir = os.path.dirname(os.path.abspath(__file__))  # スクリプトの場所
 
         plugin_dir = os.path.join(exe_dir, "plugins")
-        logging.info("Loading plugins from %s...", plugin_dir)
+        self.logger.info("Loading plugins from %s...", plugin_dir)
         if not os.path.exists(plugin_dir):
             os.mkdir(plugin_dir)
-            logging.info("Created plugin directory: %s", plugin_dir)
+            self.logger.info("Created plugin directory: %s", plugin_dir)
 
         for file_name in os.listdir(plugin_dir):
             if file_name.endswith("_plugin.py"):
@@ -85,15 +86,15 @@ class PluginManager(QMainWindow):
                     if isinstance(cls, type) and issubclass(cls, PluginBase) and cls is not PluginBase:
                         plugin_name = getattr(cls, "display_name", cls.__name__)
                         if plugin_name in self.plugins:
-                            logging.warning(f"Plugin '{plugin_name}' is already registered. Skipping...")
+                            self.logger.warning(f"Plugin '{plugin_name}' is already registered. Skipping...")
                             continue
                         plugin_instance = cls()
                         plugin_instance.initialize(self)
                         self.register_plugin(plugin_name, plugin_instance)
-                        logging.info(f"Plugin '{plugin_name}' registered with config: {plugin_instance.config}")
+                        self.logger.info(f"Plugin '{plugin_name}' registered with config: {plugin_instance.config}")
 
         # デバッグ: プラグイン一覧をログ出力
-        logging.debug(f"Loaded plugins: {list(self.plugins.keys())}")
+        self.logger.debug(f"Loaded plugins: {list(self.plugins.keys())}")
         
     def register_plugin(self, name, plugin_instance):
         """
@@ -102,7 +103,7 @@ class PluginManager(QMainWindow):
         :param plugin_instance: プラグインインスタンス
         """
         if name in self.plugins:
-            logging.warning(f"Plugin '{name}' is already registered. Skipping...")
+            self.logger.warning(f"Plugin '{name}' is already registered. Skipping...")
             return
         self.plugins[name] = plugin_instance
 
@@ -115,19 +116,19 @@ class PluginManager(QMainWindow):
         if plugin:
             plugin.execute()
         else:
-            logging.warning(f"プラグイン '{name}' が見つかりません。")
+            self.logger.warning(f"プラグイン '{name}' が見つかりません。")
 
     def load_enabled_plugins(self):
         """
         config.jsonから有効化されたプラグインをロード
         """
-        logging.info("Loading enabled plugins....\n Plugin path = %s", CONFIG_PATH)
+        self.logger.info("Loading enabled plugins....\n Plugin path = %s", CONFIG_PATH)
         if os.path.exists(CONFIG_PATH):
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
                 config = json.load(f)
                 enabled_plugins = config.get("enabled_plugins", [])
                 valid_plugins = [name for name in enabled_plugins if name in self.plugins]
-                logging.debug(f"Enabled plugins loaded: {valid_plugins}")
+                self.logger.debug(f"Enabled plugins loaded: {valid_plugins}")
                 return valid_plugins
         return []
 
@@ -139,7 +140,7 @@ class PluginManager(QMainWindow):
         config = {"enabled_plugins": self.enabled_plugins}
         with open(CONFIG_PATH, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=4)
-        logging.info("有効化されたプラグインを保存しました。")
+        self.logger.info("有効化されたプラグインを保存しました。")
 
         # 保存後にシグナルを発信
         self.plugins_updated.emit()
@@ -151,10 +152,10 @@ class PluginManager(QMainWindow):
         for plugin_name, checkbox in self.plugin_checkboxes.items():
             if checkbox.isChecked() and plugin_name not in self.enabled_plugins:
                 self.enabled_plugins.append(plugin_name)
-                logging.info(f"プラグイン '{plugin_name}' が有効化されました。")
+                self.logger.info(f"プラグイン '{plugin_name}' が有効化されました。")
             elif not checkbox.isChecked() and plugin_name in self.enabled_plugins:
                 self.enabled_plugins.remove(plugin_name)
-                logging.info(f"プラグイン '{plugin_name}' が無効化されました。")
+                self.logger.info(f"プラグイン '{plugin_name}' が無効化されました。")
 
     def get_enabled_plugins(self):
         """

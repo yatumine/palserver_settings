@@ -1,3 +1,4 @@
+import logging
 import os
 import json
 from PySide6.QtWidgets import QVBoxLayout, QLabel, QPushButton, QDialog, QMessageBox, QTextEdit
@@ -8,6 +9,7 @@ from lib.config import Config
 
 class ServerUpdateWindow(QDialog):
     def __init__(self, parent=None):
+        self.logger = logging.getLogger(self.__class__.__name__)
         super().__init__(parent)
         self.setWindowTitle("サーバー設定")
         self.setFixedSize(400, 200)

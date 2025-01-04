@@ -7,7 +7,8 @@ from lib.server_control import start_server, stop_server, check_server_status, c
 
 class DiscordBot:
     def __init__(self, token, channel_id, server_path, server_exe, server_cmd_exe, send_flag = True):
-        logging.info("Initializing DiscordBot")
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.info("Initializing DiscordBot")
         self.token = token
         self.channel_id = int(channel_id)
         self.server_path = server_path
@@ -30,24 +31,24 @@ class DiscordBot:
         self._register_commands()
 
     def _register_commands(self):
-        logging.info("Registering commands")
+        self.logger.info("Registering commands")
 
         # 既存のコマンドを登録
         @self.tree.command(name="start_server", description=f"{self.server_exe}を起動します")
         async def start_server_command(interaction: discord.Interaction):
-            logging.info(f"Command executed: start_server by {interaction.user.name}")
+            self.logger.info(f"Command executed: start_server by {interaction.user.name}")
             embed = await start_server(self.server_path, self.server_exe)
             await self._interraction_send(interaction, embed)
 
         @self.tree.command(name="stop_server", description=f"{self.server_exe}を停止します")
         async def stop_server_command(interaction: discord.Interaction):
-            logging.info(f"Command executed: stop_server by {interaction.user.name}")
+            self.logger.info(f"Command executed: stop_server by {interaction.user.name}")
             embed = await stop_server(self.server_cmd_exe, self.server_exe)
             await self._interraction_send(interaction, embed)
 
         @self.tree.command(name="check_server", description="現在サーバーが起動しているかを調べます")
         async def check_server_command(interaction: discord.Interaction):
-            logging.info(f"Command executed: check_server by {interaction.user.name}")
+            self.logger.info(f"Command executed: check_server by {interaction.user.name}")
             status = await check_server_status(self.server_exe)
             embed = discord.Embed(
                 title="サーバーは起動中です" if status else "サーバーは停止中です",
@@ -57,13 +58,13 @@ class DiscordBot:
 
         @self.tree.command(name="check_memory", description="現在のサーバーのメモリ使用量を調べます")
         async def check_memory_command(interaction: discord.Interaction):
-            logging.info(f"Command executed: check_memory by {interaction.user.name}")
+            self.logger.info(f"Command executed: check_memory by {interaction.user.name}")
             embed = await check_memory_usage()
             await self._interraction_send(interaction, embed)
 
         @self.tree.command(name="help", description="利用可能なコマンド一覧を表示します")
         async def help_command(interaction: discord.Interaction):
-            logging.info(f"Command executed: help by {interaction.user.name}")
+            self.logger.info(f"Command executed: help by {interaction.user.name}")
             embed = discord.Embed(
                 title="コマンド一覧",
                 description="以下は利用可能なコマンドの一覧です。",
@@ -76,7 +77,7 @@ class DiscordBot:
             embed.add_field(name="/help", value="利用可能なコマンド一覧を表示します", inline=False)
             await self._interraction_send(interaction, embed)
 
-        logging.info("Commands registered")
+        self.logger.info("Commands registered")
 
     async def _interraction_send(self, interaction, embed):
         if self.send_flag:
@@ -163,7 +164,7 @@ class DiscordBot:
                 await channel.send(embed=embed)
 
     async def _on_ready(self):
-        logging.info("Bot is ready")
+        self.logger.info("Bot is ready")
         try:
             await self.tree.sync()  # コマンドを同期
             await self.client.wait_until_ready()
@@ -178,14 +179,14 @@ class DiscordBot:
                 await channel.send(embed=embed)
 
             # メモリ使用量を監視
-            logging.info("Starting memory check task")
+            self.logger.info("Starting memory check task")
             self.memory_check_task.start()
 
             # サーバー状態を監視
-            logging.info("Starting server status check task")
+            self.logger.info("Starting server status check task")
             self.server_status_check_task.start()
         except Exception as e:
-            logging.error(f"Error during on_ready: {e}")
+            self.logger.error(f"Error during on_ready: {e}")
 
     def start(self):
         """Botを起動"""
@@ -196,4 +197,4 @@ class DiscordBot:
         try:
             self.client.run(self.token)
         except Exception as e:
-            logging.error(f"Bot failed to start: {e}")
+            self.logger.error(f"Bot failed to start: {e}")

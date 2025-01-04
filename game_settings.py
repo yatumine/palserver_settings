@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 import sys
@@ -16,6 +17,8 @@ from lib.config import Config
 
 class GameSettings(QDialog):
     def __init__(self, parent=None):
+        self.logger = logging.getLogger(self.__class__.__name__)
+
         super().__init__(parent)
         self.setWindowTitle("PalWorld 設定エディタ")
         self.setFixedSize(800, 600)
@@ -276,7 +279,12 @@ class GameSettings(QDialog):
         self.load_settings()  # 既存の設定読み込みロジックを再利用
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = GameSettings()
-    window.exec()
-    sys.exit(app.exec())
+    try:
+        app = QApplication(sys.argv)
+        window = GameSettings()
+        window.exec()
+        sys.exit(app.exec())
+    except Exception as e:
+        # trace
+        logging.error(f"Error occurred: {e}")
+        QMessageBox.critical(None, "エラー", f"エラーが発生しました: {e}")
