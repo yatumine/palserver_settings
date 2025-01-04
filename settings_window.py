@@ -80,41 +80,6 @@ class SettingsWindow(QDialog):
         layout.addWidget(self.discord_autostart_checkbox)
         layout.addSpacing(20)
 
-
-        # RCON設定
-        rcon_label = QLabel("RCON設定")
-        rcon_label.setMargin(0)
-        font = rcon_label.font()
-        font.setPointSize(12)
-        font.setBold(True)
-        rcon_label.setFont(font)
-        layout.addWidget(rcon_label)
-
-        # rcon_hostのテキスト入力フィールドを追加
-        self.rcon_host_label = QLabel("RCONホスト")
-        self.rcon_host_label.setMargin(0)
-        layout.addWidget(self.rcon_host_label)
-        self.rcon_host_field = QLineEdit()
-        self.rcon_host_field.setPlaceholderText("RCONホストを入力")
-        layout.addWidget(self.rcon_host_field)
-
-        # rcon_portのテキスト入力フィールドを追加
-        self.rcon_port_label = QLabel("RCONポート")
-        self.rcon_port_label.setMargin(0)
-        layout.addWidget(self.rcon_port_label)
-        self.rcon_port_field = QLineEdit()
-        self.rcon_port_field.setPlaceholderText("RCONポートを入力")
-        
-        layout.addWidget(self.rcon_port_field)
-        
-        # rcon_passwordのテキスト入力フィールドを追加
-        self.rcon_password_label = QLabel("RCONパスワード")
-        self.rcon_password_label.setMargin(0)
-        layout.addWidget(self.rcon_password_label)
-        self.rcon_password_field = QLineEdit()
-        self.rcon_password_field.setPlaceholderText("RCONパスワードを入力")
-        layout.addWidget(self.rcon_password_field)
-
         # 保存ボタン
         layout.addSpacing(30)
         save_button = QPushButton("保存して戻る")
@@ -130,9 +95,6 @@ class SettingsWindow(QDialog):
         self.discord_token_field.setText(Config.get("discord_token", ""))
         self.discord_channel_id_field.setText(Config.get("discord_channel_id", ""))
         self.discord_autostart_checkbox.setChecked(Config.get("discord_autostart", False))
-        self.rcon_host_field.setText(Config.get("rcon_host", "127.0.0.1"))
-        self.rcon_port_field.setText(Config.get("rcon_port", "25575"))
-        self.rcon_password_field.setText(Config.get("rcon_password", ""))
 
     def select_file(self):
         """ファイル選択ダイアログを表示"""
@@ -148,11 +110,6 @@ class SettingsWindow(QDialog):
         Config.set("discord_token", self.discord_token_field.text())
         Config.set("discord_channel_id", self.discord_channel_id_field.text())
         Config.set("discord_autostart", self.discord_autostart_checkbox.isChecked())
-
-        # RCON設定を保存
-        Config.set("rcon_host", self.rcon_host_field.text())
-        Config.set("rcon_port", self.rcon_port_field.text())
-        Config.set("rcon_password", self.rcon_password_field.text())
 
         # ファイルパスを保存
         new_path = self.file_path_field.text()
