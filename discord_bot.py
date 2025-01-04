@@ -6,7 +6,7 @@ import psutil
 from lib.server_control import start_server, stop_server, check_server_status, check_memory_usage
 
 class DiscordBot:
-    def __init__(self, token, channel_id, server_path, server_exe, server_cmd_exe):
+    def __init__(self, token, channel_id, server_path, server_exe, server_cmd_exe, send_flag = True):
         logging.info("Initializing DiscordBot")
         self.token = token
         self.channel_id = int(channel_id)
@@ -14,8 +14,10 @@ class DiscordBot:
         self.server_exe = server_exe
         self.server_cmd_exe = server_cmd_exe
         self.server_name = server_exe.split(".")[0]
+        self.send_flag = send_flag
 
         # 状態を追跡するための変数を初期化
+        self.is_first_run = True
         self.last_alert_level = None
         self.last_server_status = None
 
@@ -35,29 +37,29 @@ class DiscordBot:
         async def start_server_command(interaction: discord.Interaction):
             logging.info(f"Command executed: start_server by {interaction.user.name}")
             embed = await start_server(self.server_path, self.server_exe)
-            await interaction.response.send_message(embed=embed)
+            await self._interraction_send(interaction, embed)
 
         @self.tree.command(name="stop_server", description=f"{self.server_exe}を停止します")
         async def stop_server_command(interaction: discord.Interaction):
             logging.info(f"Command executed: stop_server by {interaction.user.name}")
             embed = await stop_server(self.server_cmd_exe, self.server_exe)
-            await interaction.response.send_message(embed=embed)
+            await self._interraction_send(interaction, embed)
 
         @self.tree.command(name="check_server", description="現在サーバーが起動しているかを調べます")
         async def check_server_command(interaction: discord.Interaction):
             logging.info(f"Command executed: check_server by {interaction.user.name}")
-            status = await check_server_status()
+            status = await check_server_status(self.server_exe)
             embed = discord.Embed(
                 title="サーバーは起動中です" if status else "サーバーは停止中です",
                 color=0x00ff00 if status else 0xff0000
             )
-            await interaction.response.send_message(embed=embed)
+            await self._interraction_send(interaction, embed)
 
         @self.tree.command(name="check_memory", description="現在のサーバーのメモリ使用量を調べます")
         async def check_memory_command(interaction: discord.Interaction):
             logging.info(f"Command executed: check_memory by {interaction.user.name}")
             embed = await check_memory_usage()
-            await interaction.response.send_message(embed=embed)
+            await self._interraction_send(interaction, embed)
 
         @self.tree.command(name="help", description="利用可能なコマンド一覧を表示します")
         async def help_command(interaction: discord.Interaction):
@@ -72,9 +74,13 @@ class DiscordBot:
             embed.add_field(name="/check_server", value="現在サーバーが起動しているかを調べます", inline=False)
             embed.add_field(name="/check_memory", value="現在のサーバーのメモリ使用量を調べます", inline=False)
             embed.add_field(name="/help", value="利用可能なコマンド一覧を表示します", inline=False)
-            await interaction.response.send_message(embed=embed)
+            await self._interraction_send(interaction, embed)
 
         logging.info("Commands registered")
+
+    async def _interraction_send(self, interaction, embed):
+        if self.send_flag:
+            await interaction.response.send_message(embed=embed)
 
     @tasks.loop(minutes=1)  # 毎分チェック
     async def memory_check_task(self):
@@ -96,6 +102,10 @@ class DiscordBot:
             self.last_alert_level = alert_level
             channel = self.client.get_channel(self.channel_id)
 
+            if self.is_first_run:
+                self.is_first_run = False
+                return  # 初回実行時は何もしない
+            
             if alert_level == "critical":
                 embed = discord.Embed(
                     title="高負荷警告",
@@ -115,6 +125,7 @@ class DiscordBot:
                     color=0xffff00
                 )
             elif alert_level == "normal":
+
                 embed = discord.Embed(
                     title="メモリ使用量正常",
                     description="サーバーのメモリ使用率が正常な範囲に戻りました。",
@@ -123,12 +134,12 @@ class DiscordBot:
             else:
                 return  # その他のケースでは何もしない
 
-            if channel:
+            if channel and self.send_flag:
                 await channel.send(embed=embed)
 
     @tasks.loop(minutes=1)  # サーバー状態の監視
     async def server_status_check_task(self):
-        current_status = await check_server_status()
+        current_status = await check_server_status(self.server_exe)
 
         # サーバーの状態が変化した場合のみ通知
         if current_status != self.last_server_status:
@@ -148,7 +159,7 @@ class DiscordBot:
                     color=0xff0000
                 )
 
-            if channel:
+            if channel and self.send_flag:
                 await channel.send(embed=embed)
 
     async def _on_ready(self):
@@ -163,7 +174,8 @@ class DiscordBot:
                 description="コマンドの準備が整いました。必要なコマンドを入力してください。(/helpでコマンド一覧を表示)",
                 color=0x00ff00
             )
-            await channel.send(embed=embed)
+            if channel and self.send_flag:
+                await channel.send(embed=embed)
 
             # メモリ使用量を監視
             logging.info("Starting memory check task")
@@ -180,17 +192,6 @@ class DiscordBot:
         @self.client.event
         async def on_ready():
             await self._on_ready()
-
-        @self.client.event
-        async def on_disconnect():
-            # Botが切断された時の処理
-            channel = self.client.get_channel(self.channel_id)
-            embed = discord.Embed(
-                title="Botが停止しました",
-                description="Botが正常に停止されました。",
-                color=0xff0000
-            )
-            await channel.send(embed=embed)
 
         try:
             self.client.run(self.token)

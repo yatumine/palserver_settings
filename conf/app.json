@@ -7,5 +7,6 @@
     "default_inifile_name": "DefaultPalWorldSettings.ini",
     "inifile_name": "PalWorldServerSetting.ini",
     "setting_section": "/Script/Pal.PalGameWorldSettings",
-    "option_settings_key": "OptionSettings"
+    "option_settings_key": "OptionSettings",
+    "discord_message_sent": true
 }

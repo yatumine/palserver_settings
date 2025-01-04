@@ -5,3 +5,5 @@ config.js
 *__pycache__
 PalWorldSettings.ini
 pyinstaller/
+application.log
+plugins/conf/

@@ -1,13 +1,12 @@
 import os
 import sys
 import logging
-import subprocess
 import psutil
 import json
 from PySide6.QtWidgets import (
     QApplication, QVBoxLayout, QPushButton, 
     QWidget, QMessageBox, QFileDialog, QMainWindow,
-    QToolButton
+    QToolButton, QLineEdit, QHBoxLayout, QLabel, QComboBox
 )
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtGui import QIcon
@@ -19,11 +18,12 @@ from lib.server_control import start_server, stop_server, check_server_status, c
 from lib.appconfig import AppConfig
 from lib.config import Config
 from discord_bot import DiscordBot
+from plugin_manager import PluginManager
 
 # ロギング設定
 logging.basicConfig(
     filename="application.log",
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
 logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
@@ -54,15 +54,22 @@ class SettingsApp(QMainWindow):
         logging.info("checking and setting up steamcmd...")
         self.check_and_setup_steamcmd()
 
+        # プラグインマネージャーのインスタンス
+        logging.info("initializing PluginManager...")
+        self.plugin_manager = PluginManager(self)
+        # プラグインマネージャーの更新通知を受け取る
+        self.plugin_manager.plugins_updated.connect(self.refresh_plugin_buttons)
+
+        # UI 初期化
         logging.info("initializing UI...")
         self.init_ui()
+        self.add_plugin_buttons()
 
         # 起動時にDiscordBotを起動するが有効なら起動
         if Config.get("discord_autostart", False):
             self.on_start_discord_bot()
 
         logging.info("SettingsApp initialized.")
-
 
     def load_config(self):
         """設定ファイルを読み込む"""
@@ -74,6 +81,7 @@ class SettingsApp(QMainWindow):
             except json.JSONDecodeError:
                 logging.error("invalid config file. creating new config...")
                 QMessageBox.warning(None, "エラー", "無効な設定ファイルです。新しい設定を作成します。")
+
         # デフォルトの設定を作成
         default_config = {
             "steamcmd_path": ""
@@ -106,7 +114,17 @@ class SettingsApp(QMainWindow):
         window = GameSettings(self)
         window.exec()
 
+    def open_plugin_manager(self):
+            """
+            プラグインマネージャーを開く
+            """
+            logging.info("Opening PluginManager...")
+            self.plugin_manager.show()
+
     def init_ui(self):
+        """
+        UIの初期化
+        """
         self.setWindowTitle("PalWorld 設定エディタ")
         self.resize(285, 200)
 
@@ -144,7 +162,17 @@ class SettingsApp(QMainWindow):
         stop_server_button.clicked.connect(self.on_stop_server_clicked)
         layout.addWidget(stop_server_button)
 
+        # プラグインマネージャーボタン
+        plugin_manager_button = QPushButton("プラグインマネージャーを開く")
+        plugin_manager_button.clicked.connect(self.open_plugin_manager)
+        layout.addWidget(plugin_manager_button)
+         # 初期状態のプラグインボタンを配置
+        self.refresh_plugin_buttons()
+
         self.setCentralWidget(central_widget)
+
+        # プラグインの拡張のため、layoutを保持する
+        self.layout = layout
 
     def check_and_setup_steamcmd(self):
         """SteamCMDのディレクトリを確認し、必要なら設定"""
@@ -224,6 +252,61 @@ class SettingsApp(QMainWindow):
                 continue
         return False
 
+    def add_plugin_buttons(self):
+        """
+        有効化されたプラグインのボタンを追加
+        """
+        plugin_manager = self.plugin_manager  # PluginManagerのインスタンスを取得
+        enabled_plugins = plugin_manager.get_enabled_plugins()
+        if not hasattr(self, "plugin_buttons"):
+            self.plugin_buttons = {}
+        for plugin_name, plugin_instance in enabled_plugins.items():
+            button = QPushButton(plugin_name)
+            button.clicked.connect(lambda _, p=plugin_instance: self.open_plugin_window(p))
+            self.layout.addWidget(button)
+            self.plugin_buttons[plugin_name] = button
+
+    def refresh_plugin_buttons(self):
+        """
+        プラグインマネージャーの状態に基づいてボタンを更新
+        """
+        if not hasattr(self, "plugin_buttons"):
+            self.plugin_buttons = {}
+
+        # 中央ウィジェットが設定されていない場合は終了
+        if self.centralWidget() is None or self.centralWidget().layout() is None:
+            return
+
+        # レイアウトを取得
+        self.layout = self.centralWidget().layout()
+
+        # 既存のプラグインボタンを削除
+        for button in self.plugin_buttons.values():
+            self.layout.removeWidget(button)
+            button.deleteLater()
+
+        # プラグインボタン辞書をクリア
+        self.plugin_buttons.clear()
+
+        # 有効化されたプラグインのボタンを再配置
+        enabled_plugins = self.plugin_manager.get_enabled_plugins()
+        for plugin_name, plugin_instance in enabled_plugins.items():
+            # ボタンを作成してレイアウトに追加
+            button = QPushButton(plugin_name)
+            button.clicked.connect(lambda _, p=plugin_instance: self.open_plugin_window(p))
+            self.layout.addWidget(button)
+            # 辞書に登録
+            self.plugin_buttons[plugin_name] = button
+
+    def open_plugin_window(self, plugin_instance):
+        """
+        プラグインの画面を表示
+        """
+        window = plugin_instance.create_window()
+        window.setWindowTitle(plugin_instance.display_name)  # 表示名を設定
+        window.exec()
+
+
     def check_discord_settings(self):
         """
         Discord設定が行われているかチェックする関数
@@ -249,6 +332,7 @@ class SettingsApp(QMainWindow):
         server_path = AppConfig.get("install_dir")
         server_exe = AppConfig.get("server_exe")
         server_cmd_exe = AppConfig.get("server_cmd_exe")
+        send_flag = AppConfig.get("discord_message_sent")
 
         if not discord_token or not discord_channel_id:
             QMessageBox.warning(self, "エラー", "Discordの設定が完了していません。設定画面から設定を行ってください。")
@@ -262,7 +346,7 @@ class SettingsApp(QMainWindow):
 
         logging.info("starting Discord Bot...")
         try:
-            self.discord_bot_thread = DiscordBotThread(discord_token, discord_channel_id, server_path, server_exe, server_cmd_exe)
+            self.discord_bot_thread = DiscordBotThread(discord_token, discord_channel_id, server_path, server_exe, server_cmd_exe, send_flag)
             self.discord_bot_thread.error_signal.connect(self.on_discord_bot_error)
             self.discord_bot_thread.start()
         except Exception as e:
@@ -294,7 +378,7 @@ class SettingsApp(QMainWindow):
 
         try:
             # サーバーが既に起動しているか確認
-            if asyncio.run(check_server_status()):
+            if asyncio.run(check_server_status(self.server_exe)):
                 QMessageBox.warning(self, "サーバー重複起動", f"{self.server_exe} は既に起動しています。")
                 logging.warning(f"{self.server_exe} is already running.")
                 return
@@ -338,9 +422,9 @@ class SettingsApp(QMainWindow):
 class DiscordBotThread(QThread):
     error_signal = Signal(str)
 
-    def __init__(self, token, channel_id, server_path, server_exe, server_cmd_exe):
+    def __init__(self, token, channel_id, server_path, server_exe, server_cmd_exe, send_flag):
         super().__init__()
-        self.discord_bot = DiscordBot(token, channel_id, server_path, server_exe, server_cmd_exe)
+        self.discord_bot = DiscordBot(token, channel_id, server_path, server_exe, server_cmd_exe, send_flag)
 
     def run(self):
         try:
@@ -349,7 +433,6 @@ class DiscordBotThread(QThread):
             error_message = f"DiscordBotThread error: {e}"
             logging.error(error_message)
             self.error_signal.emit(error_message)
-
 
 if __name__ == "__main__":
     try:

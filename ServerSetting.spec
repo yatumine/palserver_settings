@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('conf/app.json', 'conf'), ('conf/setting_key_map.json', 'conf'), ('images/256.ico', 'images')],
+    datas=[('conf/app.json', 'conf'), ('conf/setting_key_map.json', 'conf'), ('images/256.ico', 'images'), ('plugins/rcon_plugin.py', 'plugins'), ('plugins/rest_api_plugin.py', 'plugins')],
     hiddenimports=['PySide6.QtGui', 'PySide6.QtWidgets'],
     hookspath=[],
     hooksconfig={},

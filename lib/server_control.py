@@ -39,11 +39,11 @@ async def stop_server(server_cmd_exe: str, server_exe: str) -> discord.Embed:
             color=0xff0000
         )
 
-async def check_server_status() -> bool:
+async def check_server_status(server_exe: str) -> bool:
     """
     サーバーの状態を確認する関数
     """
-    return "PalServer.exe" in (p.name() for p in psutil.process_iter())
+    return server_exe in (p.name() for p in psutil.process_iter())
 
 async def check_memory_usage() -> discord.Embed:
     """
