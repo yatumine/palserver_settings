@@ -7,18 +7,9 @@ pip install pyinstaller PySide6 qtawesome pillow requests
 
 ## build
 
+PowerShellで、以下のコマンドを実行することでビルドが行えます。  
 ```
- pyinstaller --onedir --windowed --clean --noupx \
- --noconfirm \
- --hidden-import=PySide6.QtGui \
- --hidden-import=PySide6.QtWidgets \
- --icon=images/256.ico \
- --add-data "conf/app.json;conf" \
- --add-data "conf/setting_key_map.json;conf" \
- --add-data "images/256.ico;images" \
- --add-data "plugins/rcon_plugin.py;plugins" \
- --add-data "plugins/rest_api_plugin.py;plugins" \
- --name ServerSetting main.py
+.\make.ps1
 ```
 
 # Plugin
