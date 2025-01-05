@@ -3,7 +3,8 @@
         "name": "ゲームの難易度",
         "description": "カスタム設定する場合はNone",
         "non_double_quotation": true,
-        "hidden": true
+        "hidden": true,
+        "category": ""
     },
     "RandomizerType": {
         "name": "ランダマイザーの設定（パルの出現をランダム化）",
@@ -12,37 +13,44 @@
             "None": "ランダマイザーの設定なし",
             "Region": "地域をランダム化するように設定",
             "All": "すべてをランダム化するように設定"
-        }
+        },
+        "category": ""
     },
     "RandomizerSeed": {
         "name": "RandomizerSeed",
         "description": "",
-        "default": ""
+        "default": "",
+        "category": ""
     },
     "AdminPassword": {
         "name": "サーバーの管理者権限のパスワード",
         "description": "サーバーの管理者権限を取得するのに使用するパスワード",
-        "default": ""
+        "default": "",
+        "category": ""
     },
     "AllowConnectPlatform": {
         "name": "接続を許可するプラットフォーム",
         "description": "Steam または Xbox または Mac (デフォルト: Steam)",
-        "default": "Steam"
+        "default": "Steam",
+        "category": ""
     },
     "BaseCampMaxNum": {
         "name": "最大拠点数 デフォルト128",
         "description": "",
-        "default": 128
+        "default": 128,
+        "category": ""
     },
     "BaseCampMaxNumInGuild": {
         "name": "ギルド当たりの最大拠点数 デフォルト3 (最大10)",
         "description": "値を大きくするほど処理負荷が増大します",
-        "default": 3
+        "default": 3,
+        "category": ""
     },
     "BaseCampWorkerMaxNum": {
         "name": "拠点当たりの最大パル数（最大50）",
         "description": "値を大きくするほど処理負荷が増大します",
-        "default": 15
+        "default": 15,
+        "category": ""
     },
     "bBuildAreaLimit": {
         "name": "ファストトラベルなどの構造物付近で建築を禁止する",
@@ -50,7 +58,8 @@
         "select": {
             "False": "False",
             "True": "True"
-        }
+        },
+        "category": ""
     },
     "bEnableFastTravel": {
         "name": "ファストトラベルを有効化",
@@ -58,7 +67,8 @@
         "select": {
             "True": "True",
             "False": "False"
-        }
+        },
+        "category": ""
     },
     "bEnableInvaderEnemy": {
         "name": "襲撃を有効化するか",
@@ -66,7 +76,8 @@
         "select": {
             "True": "True",
             "False": "False"
-        }
+        },
+        "category": ""
     },
     "bHardcore": {
         "name": "ハードコアの有効化",
@@ -74,7 +85,8 @@
         "select": {
             "False": "False",
             "True": "True"
-        }
+        },
+        "category": ""
     },
     "bInvisibleOtherGuildBaseCampAreaFX": {
         "name": "拠点範囲表示",
@@ -82,7 +94,8 @@
         "select": {
             "False": "False",
             "True": "True"
-        }
+        },
+        "category": ""
     },
     "bIsUseBackupSaveData": {
         "name": "ワールドバックアップの有効化",
@@ -90,7 +103,8 @@
         "select": {
             "True": "True",
             "False": "False"
-        }
+        },
+        "category": ""
     },
     "bPalLost": {
         "name": "死亡時にパルを永久的にロストするか",
@@ -98,7 +112,8 @@
         "select": {
             "False": "False",
             "True": "True"
-        }
+        },
+        "category": ""
     },
     "bShowPlayerList": {
         "name": "ESCキーで表示される画面での参加者一覧を有効化",
@@ -106,46 +121,55 @@
         "select": {
             "False": "False",
             "True": "True"
-        }
+        },
+        "category": ""
     },
     "BuildObjectHpRate": {
         "name": "建築物のHP倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "BuildObjectDamageRate": {
         "name": "建築物に対するダメージ倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "BuildObjectDeteriorationDamageRate": {
         "name": "建築物の劣化速度倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "ChatPostLimitPerMinute": {
         "name": "1分間に投稿可能なチャット数",
         "description": "",
-        "default": 10
+        "default": 10,
+        "category": ""
     },
     "CollectionDropRate": {
         "name": "採集アイテムの入手量倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "CollectionObjectHpRate": {
         "name": "採集オブジェクトのHP倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "CollectionObjectRespawnSpeedRate": {
         "name": "採集オブジェクトのリスポーン間隔",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "DayTimeSpeedRate": {
         "name": "昼の経過速度",
-        "description": 1.000000
+        "description": 1.000000,
+        "category": ""
     },
     "DeathPenalty": {
         "name": "デスペナルティ",
@@ -155,21 +179,25 @@
             "Item": "装備品以外のアイテム",
             "ItemAndEquipment": "すべての装備品とアイテム",
             "All": "全ての装備品と装備品と手持ちパル"
-        }
+        },
+        "category": ""
     },
     "EnemyDropItemRate": {
         "name": "ドロップアイテム量の倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "ExpRate": {
         "name": "経験値の入手倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "GuildPlayerMaxNum": {
         "name": "ギルドの最大人数",
-        "description": 20
+        "description": 20,
+        "category": ""
     },
     "EnablePredatorBossPal": {
         "name": "プレデターボスパルを有効にする",
@@ -177,97 +205,116 @@
         "select": {
             "True": "True",
             "False": "False"
-        }
+        },
+        "category": ""
     },
     "MaxBuildingLimitNum": {
         "name": "プレイヤーごとに建築物数制限 (0 = 無制限)",
         "description": "",
-        "default": 0
+        "default": 0,
+        "category": ""
     },
     "NightTimeSpeedRate": {
         "name": "夜の経過速度",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "PalAutoHPRegeneRate": {
         "name": "パルのHP自然回復倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "PalAutoHpRegeneRateInSleep": {
         "name": "パルの睡眠時HP回復倍率(パルボックス内)",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "PalCaptureRate": {
         "name": "捕獲確率の倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "PalDamageRateAttack": {
         "name": "パルの与えるダメージ倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "PalDamageRateDefense": {
         "name": "パルの受けるダメージ倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "PalEggDefaultHatchingTime": {
         "name": "キョダイタマゴの孵化にかかる時間(h)",
         "description": "",
-        "default": 72.000000
+        "default": 72.000000,
+        "category": ""
     },
     "PalSpawnNumRate": {
         "name": "パル出現倍率",
         "description": "※パフォーマンスに影響します",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "PalStaminaDecreaceRate": {
         "name": "パルのスタミナ減少倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "PalStomachDecreaceRate": {
         "name": "パルの満腹度現象倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "PlayerAutoHPRegeneRate": {
         "name": "プレイヤーのHP自然回復倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "PlayerAutoHpRegeneRateInSleep": {
         "name": "プレイヤーの睡眠時HP回復倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "PlayerDamageRateAttack": {
         "name": "プレイヤーの与えるダメージ倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "PlayerDamageRateDefense": {
         "name": "プレイヤーの受けるダメージ倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "PlayerStaminaDecreaceRate": {
         "name": "プレイヤーのスタミナ減少倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "PlayerStomachDecreaceRate": {
         "name": "プレイヤーの満腹度減少倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "ItemWeightRate": {
         "name": "アイテム重量倍率",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "bEnablePlayerToPlayerDamage": {
         "name": "プレイヤー間のダメージの有効化",
@@ -275,7 +322,8 @@
         "select": {
             "False": "False",
             "True": "True"
-        }
+        },
+        "category": ""
     },
     "bEnableFriendlyFire": {
         "name": "フレンドリーファイアの有効化",
@@ -283,7 +331,8 @@
         "select": {
             "False": "False",
             "True": "True"
-        }
+        },
+        "category": ""
     },
     "bActiveUNKO": {
         "name": "パルの排泄物の有効化",
@@ -291,7 +340,8 @@
         "select": {
             "False": "False",
             "True": "True"
-        }
+        },
+        "category": ""
     },
     "bEnableAimAssistPad": {
         "name": "エイムアシスト（ゲームパッド）",
@@ -299,7 +349,8 @@
         "select": {
             "True": "True",
             "False": "False"
-        }
+        },
+        "category": ""
     },
     "bEnableAimAssistKeyboard": {
         "name": "エイムアシスト（キーボード）",
@@ -307,22 +358,26 @@
         "select": {
             "False": "False",
             "True": "True"
-        }
+        },
+        "category": ""
     },
     "DropItemMaxNum": {
         "name": "ドロップアイテムの最大個数",
         "description": "",
-        "default": 3000
+        "default": 3000,
+        "category": ""
     },
     "DropItemMaxNum_UNKO": {
         "name": "パルの排泄物の最大個数",
         "description": "",
-        "default": 100
+        "default": 100,
+        "category": ""
     },
     "DropItemAliveMaxHours": {
         "name": "ドロップアイテムが消えるまでの時間",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "bAutoResetGuildNoOnlinePlayers": {
         "name": "全プレイヤーがオフラインのギルドを自動で解散",
@@ -330,22 +385,26 @@
         "select": {
             "False": "False",
             "True": "True"
-        }
+        },
+        "category": ""
     },
     "AutoResetGuildTimeNoOnlinePlayers": {
         "name": "ギルドの自動解散するまでの時間",
         "description": "全プレイヤーがオフラインのギルドを解散する場合、何時間で自動的に解散を行うか",
-        "default": 72.000000
+        "default": 72.000000,
+        "category": ""
     },
     "WorkSpeedRate": {
         "name": "作業速度",
         "description": "",
-        "default": 1.000000
+        "default": 1.000000,
+        "category": ""
     },
     "AutoSaveSpan": {
         "name": "自動保存の間隔（単位：秒）",
         "description": "",
-        "default": 30.000000
+        "default": 30.000000,
+        "category": ""
     },
     "bIsPvP": {
         "name": "PvPの可否",
@@ -353,7 +412,8 @@
         "select": {
             "False": "False",
             "True": "True"
-        }
+        },
+        "category": ""
     },
     "bCanPickupOtherGuildDeathPenaltyDrop": {
         "name": "他ギルドのデスペナルティドロップを取得可能にする",
@@ -361,7 +421,8 @@
         "select": {
             "False": "False",
             "True": "True"
-        }
+        },
+        "category": ""
     },
     "bEnableNonLoginPenalty": {
         "name": "未ログインによるペナルティ有効化",
@@ -369,7 +430,8 @@
         "select": {
             "True": "True",
             "False": "False"
-        }
+        },
+        "category": ""
     },
     "bIsStartLocationSelectByMap": {
         "name": "自身の開始場所をマップから選択可能",
@@ -377,7 +439,8 @@
         "select": {
             "True": "True",
             "False": "False"
-        }
+        },
+        "category": ""
     },
     "bExistPlayerAfterLogout": {
         "name": "ログアウト後もプレイヤーキャラを存在させる",
@@ -385,7 +448,8 @@
         "select": {
             "False": "False",
             "True": "True"
-        }
+        },
+        "category": ""
     },
     "bEnableDefenseOtherGuildPlayer": {
         "name": "他ギルドに対する防衛を有効化",
@@ -393,89 +457,70 @@
         "select": {
             "False": "False",
             "True": "True"
-        }
-    },
-    "CoopPlayerMaxNum": {
-        "name": "協力プレイ時の最大人数",
-        "description": "",
-        "default": 4
+        },
+        "category": ""
     },
     "ServerReplicatePawnCullDistance": {
         "name": "プレイヤーからのPalの同期距離（cm）",
         "description": " 最小5000~最大15000",
-        "default": 15000.000000
+        "default": 15000.000000,
+        "category": ""
     },
     "SupplyDropSpan": {
         "name": "隕石・補給物資の投下間隔（分）",
         "description": "",
-        "default": 180
-    },
-    "LogFormatType": {
-        "name": "ログフォーマットの指定",
-        "description": "Text または Json",
-        "select": {
-            "Text": "Text",
-            "Json": "Json"
-        }
-    },
-    "PublicIP": {
-        "name": "外部公開IP",
-        "description": "コミュニティサーバー設定において、外部公開IPを明示的に指定"
-    },
-    "PublicPort": {
-        "name": "外部公開ポート",
-        "description": "コミュニティサーバー設定において、外部公開ポートを明示的に指定（この設定ではサーバーの待ち受けポートは変更されません）",
-        "default": 8211
-    },
-    "RCONEnabled": {
-        "name": "RCONを有効化",
-        "description": "",
-        "select": {
-            "False": "False",
-            "True": "True"
-        }
-    },
-    "RCONPort": {
-        "name": "RCONで使用するポート番号",
-        "description": "",
-        "default": 25575
-    },
-    "RESTAPIEnabled": {
-        "name": "REST APIの有効化",
-        "description": "",
-        "select": {
-            "False": "False",
-            "True": "True"
-        }
-    },
-    "RESTAPIPort": {
-        "name": "REST APIの待ち受けポート",
-        "description": "",
-        "default": 8212
+        "default": 180,
+        "category": ""
     },
     "ServerName": {
         "name": "サーバー名",
         "description": "",
-        "default": "Default Palworld Server"
+        "default": "Default Palworld Server",
+        "category": "general"
     },
     "ServerDescription": {
         "name": "サーバー説明",
         "description": "",
-        "default": ""
+        "default": "",
+        "category": "general"
     },
     "ServerPassword": {
         "name": "サーバーのログインに必要なパスワード",
         "description": "",
-        "default": ""
+        "default": "",
+        "category": "general"
     },
     "ServerPlayerMaxNum": {
         "name": "サーバーに参加できる最大人数",
         "description": "",
-        "default": 32
+        "default": 32,
+        "category": "general"
+    },
+    "CoopPlayerMaxNum": {
+        "name": "協力プレイ時の最大人数",
+        "description": "",
+        "default": 4,
+        "category": "general"
+    },
+    "PublicIP": {
+        "name": "外部公開IP",
+        "description": "コミュニティサーバー設定において、外部公開IPを明示的に指定",
+        "category": "general"
+    },
+    "PublicPort": {
+        "name": "外部公開ポート",
+        "description": "コミュニティサーバー設定において、外部公開ポートを明示的に指定（この設定ではサーバーの待ち受けポートは変更されません）",
+        "default": 8211,
+        "category": "general"
     },
     "Region": {
         "name": "地域",
-        "description": ""
+        "description": "",
+        "category": "general"
+    },
+    "BanListURL": {
+        "name": "BAN一覧のURL",
+        "description": "general"
     },
     "bUseAuth": {
         "name": "認証を使用する",
@@ -483,10 +528,46 @@
         "select": {
             "True": "True",
             "False": "False"
-        }
+        },
+        "category": "general"
     },
-    "BanListURL": {
-        "name": "BAN一覧のURL",
-        "description": ""
+    "RCONEnabled": {
+        "name": "RCONを有効化",
+        "description": "",
+        "select": {
+            "False": "False",
+            "True": "True"
+        },
+        "category": "general"
+    },
+    "RCONPort": {
+        "name": "RCONで使用するポート番号",
+        "description": "",
+        "default": 25575,
+        "category": "general"
+    },
+    "RESTAPIEnabled": {
+        "name": "REST APIの有効化",
+        "description": "",
+        "select": {
+            "False": "False",
+            "True": "True"
+        },
+        "category": "general"
+    },
+    "RESTAPIPort": {
+        "name": "REST APIの待ち受けポート",
+        "description": "",
+        "default": 8212,
+        "category": "general"
+    },
+    "LogFormatType": {
+        "name": "ログフォーマットの指定",
+        "description": "Text または Json",
+        "select": {
+            "Text": "Text",
+            "Json": "Json"
+        },
+        "category": "general"
     }
 }

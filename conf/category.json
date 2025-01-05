@@ -1,0 +1,29 @@
+{
+    "category": [
+        {
+            "id": 1,
+            "key": "general",
+            "name": "General"
+        },
+        {
+            "id": 2,
+            "key": "general",
+            "name": "General"
+        },
+        {
+            "id": 3,
+            "key": "general",
+            "name": "General"
+        },
+        {
+            "id": 4,
+            "key": "general",
+            "name": "General"
+        },
+        {
+            "id": 5,
+            "key": "general",
+            "name": "General"
+        }
+    ]
+}

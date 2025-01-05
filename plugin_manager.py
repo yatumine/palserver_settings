@@ -2,7 +2,7 @@ import os
 import sys
 import json
 import logging
-from PySide6.QtWidgets import QVBoxLayout, QPushButton, QCheckBox, QWidget, QMainWindow
+from PySide6.QtWidgets import QVBoxLayout, QPushButton, QCheckBox, QWidget, QMainWindow, QMessageBox
 from PySide6.QtCore import Qt, Signal
 from plugins.plugin_base import PluginBase
 import importlib.util
@@ -32,7 +32,7 @@ class PluginManager(QMainWindow):
         self.layout = QVBoxLayout(central_widget)
         self.layout.setAlignment(Qt.AlignTop)
 
-        # プラグイン一覧のチェックボックスを動的に作成
+        # プラグイン一覧のチェックボックスを作成
         self.plugin_checkboxes = {}
         for plugin_name, plugin_instance in self.plugins.items():
             checkbox = QCheckBox(plugin_name)
@@ -47,12 +47,36 @@ class PluginManager(QMainWindow):
             self.layout.addSpacing(10)
 
         # 保存ボタン
-        self.layout.addSpacing(30)
+        self.layout.addSpacing(30)        # 保存ボタン
         save_button = QPushButton("設定を保存")
         save_button.clicked.connect(self.save_enabled_plugins)
         self.layout.addWidget(save_button)
 
+        # プラグイン再ロードボタンを追加
+        reload_button = QPushButton("プラグインを再ロード")
+        reload_button.clicked.connect(self.reload_plugins)
+        self.layout.addWidget(reload_button)
+
         self.setCentralWidget(central_widget)
+
+    def reload_plugins(self):
+        """
+        プラグインを再ロードし、有効な設定を引き継ぐ
+        """
+        # 現在の有効なプラグインを保存
+        current_enabled_plugins = list(self.enabled_plugins)  # リストをコピーしておく
+
+        self.plugins.clear()
+        self.load_plugins()
+
+        # 有効なプラグインを復元
+        self.enabled_plugins = [
+            plugin for plugin in current_enabled_plugins if plugin in self.plugins
+        ]
+
+        # UIを再初期化して更新
+        QMessageBox.information(self, "再ロード完了", "プラグインが再ロードされました。")
+        self.init_ui()
 
     def open_settings_window(self, plugin_instance):
         settings_window = plugin_instance.create_settings_window()

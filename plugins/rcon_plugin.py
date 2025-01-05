@@ -15,7 +15,6 @@ class RCONPlugin(PluginBase):
         self.window = None
 
         # RCON設定を取得
-        self.config = self.get_default_config()
         self.host = self.config.get("host", "127.0.0.1")
         self.port = self.config.get("port", 25575)
         self.password = self.config.get("password", "")
