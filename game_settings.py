@@ -166,62 +166,97 @@ class GameSettings(QDialog):
 
         self.inputs.clear()
 
-        if self.setting_section in self.config:
-            settings = self.config[self.setting_section]
-            option_settings = settings.get(self.option_settings_key, None)
+        # INIファイルから設定を読み込み
+        option_items = self.get_option_settings()
+        if not option_items:
+            # 設定が存在しない場合は何もしない
+            return
+        # option_itemsの値を=で分割して、keyとvalueを取得
+        option_items = {key: value for key, value in [item.split('=') for item in option_items]}
 
-            if option_settings:
-                option_items = option_settings.strip('()').split(',')
+        # category.json を読み込む
+        categories = self.load_category()
+
+        # category ごとにセクションを作成
+        for category in categories:
+            category_label = QLabel(category["name"])
+            category_label.setStyleSheet("font-size: 16px; font-weight: bold;")
+            self.scroll_layout.addWidget(category_label)
+
+            # setting_key_map.json（self.key_map）からcategoryに対応するキーを取得
+            setting_keys = [key for key, value in self.key_map.items() if value.get("category") == category["key"]]
+            for setting_key in setting_keys:
+                # option_settingsに含まれるキーのみを表示
+                if setting_key not in option_items:
+                    continue
+
+                # option_itemsからkeyに対応する値を取得
+                item_value = option_items[setting_key].strip('"')
                 self.filtered_keys = []
-                for item in option_items:
-                    if '=' in item:
-                        key, value = item.split('=')
-                        key = key.strip()
-                        key_info = self.key_map.get(key, {})
-                        if key_info.get("hidden", False):
-                            continue  # 非表示設定をスキップ
-                        display_label = key_info.get("name", key)
-                        if self.search_field.text().lower() in display_label.lower():
-                            self.filtered_keys.append((key, value.strip()))
 
-                for key, value in self.filtered_keys:
-                    value = value.strip('"')
-                    key_info = self.key_map.get(key, {})
-                    display_label = key_info.get("name", key)
+                # setting_key_map.json からキーに対応する情報を取得し処理
+                key_info = self.key_map.get(setting_key, {})
+                if key_info.get("hidden", False):
+                    continue  # 非表示設定をスキップ
+
+                # 表示処理
+                display_label = key_info.get("name", setting_key)
+                if self.search_field.text().lower() in display_label.lower():
+                    self.filtered_keys.append((setting_key, item_value.strip()))
+
+                for filtered_key, filtered_value in self.filtered_keys:
+                    filtered_value = filtered_value.strip('"')
+                    key_info = self.key_map.get(filtered_key, {})
+                    display_label = key_info.get("name", filtered_key)
                     description = key_info.get("description", "")
 
                     label = QLabel(display_label)
                     label.setFixedHeight(30)
                     label.setStyleSheet("font-size: 14px;")
+                    label.setStyleSheet("margin-left: 5px;") # 左マージンを設定
 
-                    if "select" in key_info:
-                        select_options = key_info["select"]
-                        input_field = QComboBox()
-                        for option_key, option_label in select_options.items():
-                            input_field.addItem(option_label, option_key)
-                        input_field.setCurrentText(select_options.get(value, value))
-                        input_field.setFixedHeight(30)
-                    elif value in ['True', 'False']:
-                        input_field = QComboBox()
-                        input_field.addItems(['True', 'False'])
-                        input_field.setCurrentText(value)
-                        input_field.setFixedHeight(30)
-                    elif value.replace('.', '', 1).isdigit() and '.' in value:
-                        input_field = QLineEdit(value)
-                        input_field.setValidator(QDoubleValidator())
-                        input_field.setFixedHeight(30)
-                    elif value.isdigit():
-                        input_field = QLineEdit(value)
-                        input_field.setValidator(QIntValidator())
-                        input_field.setFixedHeight(30)
-                    else:
-                        input_field = QLineEdit(value)
-                        input_field.setFixedHeight(30)
 
+                    # 入力フィールドの作成
+                    input_field = self.create_input_field(key_info, filtered_value)
+
+                    # レイアウトに追加
                     self.scroll_layout.addWidget(label)
                     self.scroll_layout.addWidget(input_field)
 
-                    self.inputs[key] = input_field
+                    # 入力フィールドを保存
+                    self.inputs[filtered_key] = input_field
+
+            # カテゴリごとにスペースを追加
+            label.setFixedHeight(30)
+            
+
+    def create_input_field(self, key_info, value):
+        """入力フィールドを作成"""
+        if "select" in key_info:
+            select_options = key_info["select"]
+            input_field = QComboBox()
+            for option_key, option_label in select_options.items():
+                input_field.addItem(option_label, option_key)
+            input_field.setCurrentText(select_options.get(value, value))
+        elif value in ["True", "False"]:
+            input_field = QComboBox()
+            input_field.addItems(["True", "False"])
+            input_field.setCurrentText(value)
+        elif isinstance(value, str) and value.replace(".", "", 1).isdigit() and "." in value:
+            input_field = QLineEdit(value)
+            input_field.setValidator(QDoubleValidator())
+        elif isinstance(value, str) and value.isdigit():
+            input_field = QLineEdit(value)
+            input_field.setValidator(QIntValidator())
+        else:
+            input_field = QLineEdit(str(value))
+
+        # 入力フィールドのスタイル設定
+        input_field.setFixedHeight(30)                  # 高さを固定
+        input_field.setFixedWidth(500)                  # 幅を固定
+        input_field.setStyleSheet("margin-left: 15px;") # 左マージンを設定
+        return input_field
+
 
     def save_settings(self):
         if self.setting_section not in self.config:
@@ -261,6 +296,22 @@ class GameSettings(QDialog):
             QMessageBox.information(self, "保存完了", "設定を正常に保存しました！")
         except Exception as e:
             QMessageBox.critical(self, "エラー", f"設定ファイルの保存に失敗しました: {str(e)}")
+
+    def get_option_settings(self):
+        """設定のオプション部分を取得"""
+        try:
+            if self.setting_section in self.config:
+                settings = self.config[self.setting_section]
+                option_settings = settings.get(self.option_settings_key, None)
+                return option_settings.strip('()').split(',')
+        except Exception as e:
+            QMessageBox.critical(self, "エラー", f"設定の取得に失敗しました: {str(e)}")
+        return ""
+
+    def load_category(self):
+        """カテゴリーを読み込む"""
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "conf", "category.json"), "r", encoding="utf-8") as f:
+            return json.load(f)["category"]
 
     def load_settings(self):
         """設定をロードして表示"""

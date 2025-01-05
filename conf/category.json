@@ -2,28 +2,28 @@
     "category": [
         {
             "id": 1,
-            "key": "general",
-            "name": "General"
+            "key": "Server",
+            "name": "サーバー設定"
         },
         {
             "id": 2,
-            "key": "general",
-            "name": "General"
+            "key": "Gameplay",
+            "name": "ゲームプレイ設定"
         },
         {
             "id": 3,
-            "key": "general",
-            "name": "General"
+            "key": "Guild",
+            "name": "ギルド設定"
         },
         {
             "id": 4,
-            "key": "general",
-            "name": "General"
+            "key": "UI",
+            "name": "ユーザーインターフェース設定"
         },
         {
             "id": 5,
-            "key": "general",
-            "name": "General"
+            "key": "Environment",
+            "name": "環境設定"
         }
     ]
 }
