@@ -1,6 +1,6 @@
 # PalWorldServerSetting
 
-![MainMenu](https://github.com/yatumine/palserver_settings/docs/main_menu.png) 
+![MainMenu](https://github.com/yatumine/palserver_settings/blob/main/docs/images/main_menu.png) 
 
 
 ## Overview
