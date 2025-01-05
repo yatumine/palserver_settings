@@ -1,7 +1,6 @@
 # PyInstallerのビルドと圧縮を行うスクリプト
 
 # ビルド用の変数定義
-$scriptName = "main.py"
 $outputName = "ServerSetting"
 $distDir = "dist"
 $buildDir = "build"
@@ -24,6 +23,7 @@ $pyInstallerCommand = @(
     "--icon=images/256.ico",
     "--add-data 'conf/app.json;conf'",
     "--add-data 'conf/setting_key_map.json;conf'",
+    "--add-data 'conf/category.json;conf'",
     "--add-data 'images/256.ico;images'",
     "--add-data 'plugins/rcon_plugin.py;plugins'",
     "--add-data 'plugins/rest_api_plugin.py;plugins'",
@@ -55,7 +55,8 @@ Compress-Archive -Path * -DestinationPath "../$zipFileName" -Force
 # 圧縮成功確認
 if (Test-Path "../$zipFileName") {
     Write-Host "Compression successful: $zipFileName" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "Compression failed." -ForegroundColor Red
     Set-Location $originalDir  # ディレクトリを元に戻す
     exit 1

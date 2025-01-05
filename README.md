@@ -1,11 +1,43 @@
-## Setting
+# PalWorldServerSetting
+
+![MainMenu](https://github.com/yatumine/palserver_settings/docs/main_menu.png) 
+
+
+## Overview
+Windows Serverでのパルワールドサーバー構築とサーバー設定が行えます。  
+[Discord Developer Portal](https://discord.com/developers/applications)にてDiscordBotを作成し、設定を行うことでDiscordから各種コマンド実行が行えます。  
+DiscordBotでは、1分に1回のサーバーのメモリ監視が行われます。  
+
+
+## Requirement
+Windows Server(または、Windows)
+
+## Usage
+[Releases](https://github.com/yatumine/palserver_settings/releases) からzipをダウンロードし、ServerSetting.exeを実行してください。
+
+または、このリポジトリをCloneしてビルドすることもできます。  
+[ビルド方法](#Build)
+
+プラグインでの拡張機能があり、標準でRCONプラグインとRestAPIプラグインが同梱されています。  
+利用するには、パッケージ展開後プラグインディレクトリに配置することでプラグインマネージャーで有効化し利用できます。  
+[プラグイン](#Plugin)
+
+## Reference
+
+## Author
+
+[X(twitter)](https://x.com/KmmrTech)
+
+## Licence
+
+[MIT](https://github.com/yatumine/palserver_settings?tab=MIT-1-ov-file)
+
+
+# Build
 
 ```
-pip install pyinstaller PySide6 qtawesome pillow requests
-
+pip install -r requirements.txt
 ```
-
-## build
 
 PowerShellで、以下のコマンドを実行することでビルドが行えます。  
 ```
@@ -17,37 +49,44 @@ PowerShellで、以下のコマンドを実行することでビルドが行え�
 _internal/plugins配下に、RCONのコマンド送信プラグインとRestAPIの送信プラグインが同梱されています。
 このファイルをexe側のpluginsディレクトリにコピーすることでプラグインを利用することができます。
 
-## アイコンの一覧
-Fontawesome のアイコンを一覧で表示するには、コマンドプロンプトで以下を実行する
-```
-qta-browser
-```
-
-##  アプリアイコン
-images/icon.svg
-256x256のアプリアイコンを作成し、ペイントでBMPファイルとして保存。
-ファイル名を.icoにする。
+## Plugin開発
+プラグインは、PluginBaseクラスを継承した<プラグイン名>_plugin.pyというファイルを作成することでプラグインマネージャから有効化できるようになります。
+プラグインファイルはビルドの必要はなく、pyファイルをpluginsディレクトリにコピーすることで利用可能になります。
+注意:プラグインファイルでライブラリを新たに追加する場合は別途パッケージビルドが必要です。
 
 ## pyinstallerのビルドが失敗するとき
-Gitからpyinstallerを取得しビルド環境を構築します。
+Gitからpyinstallerを取得しビルド環境を構築します。  
+```
 pip uninstall pyinstaller
+```
 
-gitコマンドでPyinstallerをクローン
+gitコマンドでPyinstallerをクローン  
+```
 git clone https://github.com/pyinstaller/pyinstaller
+```
 
-ブートローダーフォルダまで移動。
-cd pyinstaller
-cd bootloader
+ブートローダーフォルダまで移動。  
+```
+cd pyinstaller/bootloader
+```
 
-環境をクリーン
+環境をクリーン  
+```
 python ./waf distclean all
+```
 
-pyinstaller直下に移動
+pyinstaller直下に移動  
+```
 cd ../
+```
 
-wheelのインストール
-bootloaderを再構築したpyinstallerをインストールするために、wheelをインストールする
+wheelのインストール  
+bootloaderを再構築したpyinstallerをインストールするために、wheelをインストールする  
+```
 pip install wheel
+```
 
-pyinstallerのインストール。
+pyinstallerのインストール  
+```
 pip install .
+```
