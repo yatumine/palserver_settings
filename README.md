@@ -13,7 +13,7 @@ DiscordBotでは、1分に1回のサーバーのメモリ監視が行われま�
 Windows Server(または、Windows)
 
 ## Usage
-[Releases](https://github.com/yatumine/palserver_settings/releases) からzipをダウンロードし、ServerSetting.exeを実行してください。
+[Releases](https://github.com/yatumine/palserver_settings/releases) からServerSetting.zipをダウンロードし、ServerSetting.exeを実行してください。
 
 または、このリポジトリをCloneしてビルドすることもできます。  
 [ビルド方法](#Build)
