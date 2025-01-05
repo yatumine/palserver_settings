@@ -4,7 +4,7 @@
 
 
 ## Overview
-Windows Serverでのパルワールドサーバー構築とサーバー設定が行えます。  
+Windows Server（またはWindows）でのパルワールドサーバー構築とサーバー設定が行えます。  
 [Discord Developer Portal](https://discord.com/developers/applications)にてDiscordBotを作成し、設定を行うことでDiscordから各種コマンド実行が行えます。  
 DiscordBotでは、1分に1回のサーバーのメモリ監視が行われます。  
 
