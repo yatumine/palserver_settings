@@ -3,8 +3,8 @@ dist/
 config.js
 .venv
 *__pycache__
-PalWorldSettings.ini
 pyinstaller/
 application.log
 plugins/conf/
 conf/plugin_config.json
+*.log
