@@ -7,3 +7,4 @@ PalWorldSettings.ini
 pyinstaller/
 application.log
 plugins/conf/
+conf/plugin_config.json
