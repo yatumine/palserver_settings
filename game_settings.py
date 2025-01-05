@@ -150,7 +150,7 @@ class GameSettings(QDialog):
         for i in range(self.scroll_layout.count()):
             widget = self.scroll_layout.itemAt(i).widget()
             if isinstance(widget, QLabel) and widget.text() == category_name:
-                self.scroll_area.ensureWidgetVisible(widget)
+                self.scroll_area.verticalScrollBar().setValue(widget.pos().y())
                 break
 
     def open_comparison_window(self):
