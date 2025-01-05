@@ -248,7 +248,7 @@ class GameSettings(QDialog):
                     self.inputs[filtered_key] = input_field
 
             # カテゴリごとにスペースを追加
-            label.setFixedHeight(30)
+            self.scroll_layout.addSpacing(50)
 
     def create_input_field(self, key_info, value):
         """入力フィールドを作成"""
@@ -304,7 +304,12 @@ class GameSettings(QDialog):
             elif value.replace('.', '', 1).isdigit():
                 original_items[key] = value
             else:
-                original_items[key] = f"\"{value}\""
+                # "select"がkey_mapに定義されている場合、またはnon_double_quotationがTrueの場合
+                key_info = self.key_map.get(key, {})
+                if "select" in key_info or key_info.get("non_double_quotation", False):
+                    original_items[key] = value
+                else:
+                    original_items[key] = f"\"{value}\""
 
         updated_option_settings = [f"{key}={value}" for key, value in original_items.items()]
         settings[self.option_settings_key] = f"({','.join(updated_option_settings)})"
