@@ -7,7 +7,7 @@ import configparser
 from PySide6.QtWidgets import (
     QApplication, QVBoxLayout, QLabel, QLineEdit, QPushButton, 
     QWidget, QMessageBox, QFileDialog, QScrollArea, QDialog, QComboBox,
-    QHBoxLayout, QToolButton
+    QHBoxLayout, QToolButton, QSplitter, QListWidget, QListWidgetItem
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIntValidator, QDoubleValidator
@@ -21,7 +21,7 @@ class GameSettings(QDialog):
 
         super().__init__(parent)
         self.setWindowTitle("PalWorld 設定エディタ")
-        self.setFixedSize(800, 600)
+        self.setFixedSize(1000, 600)
         self.setModal(True)  # モーダルウィンドウに設定
 
         self.key_map_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "conf", "setting_key_map.json")
@@ -96,8 +96,18 @@ class GameSettings(QDialog):
         return {}
 
     def init_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setAlignment(Qt.AlignTop)  # 縦軸の要素を上詰めに設定
+        main_layout = QHBoxLayout(self)
+
+        # 左ペイン（目次）
+        self.nav_list = QListWidget()
+        self.nav_list.setFixedWidth(200)
+        self.nav_list.itemClicked.connect(self.scroll_to_category)
+        main_layout.addWidget(self.nav_list)
+
+        # 右ペイン（設定フォーム）
+        right_pane = QWidget()
+        right_layout = QVBoxLayout(right_pane)
+        right_layout.setAlignment(Qt.AlignTop)
 
         search_layout = QHBoxLayout()
         search_label = QLabel("検索:")
@@ -112,28 +122,36 @@ class GameSettings(QDialog):
         search_layout.addWidget(search_label)
         search_layout.addWidget(self.search_field)
         search_layout.addWidget(settings_button)
-        layout.addLayout(search_layout)
+        right_layout.addLayout(search_layout)
 
         self.scroll_area = QScrollArea()
         self.scroll_content = QWidget()
         self.scroll_layout = QVBoxLayout(self.scroll_content)
-        self.scroll_layout.setAlignment(Qt.AlignTop)  # 縦軸の要素を上詰めに設定
+        self.scroll_layout.setAlignment(Qt.AlignTop)
         self.scroll_area.setWidget(self.scroll_content)
         self.scroll_area.setWidgetResizable(True)
 
-        layout.addWidget(self.scroll_area)
+        right_layout.addWidget(self.scroll_area)
 
-        # 未定義の設定を確認するボタンを追加
         compare_button = QPushButton("未定義の設定を確認する")
         compare_button.clicked.connect(self.open_comparison_window)
-        layout.addWidget(compare_button)
+        right_layout.addWidget(compare_button)
 
         save_button = QPushButton("設定を保存")
         save_button.clicked.connect(self.save_settings)
-        layout.addWidget(save_button)
+        right_layout.addWidget(save_button)
 
+        main_layout.addWidget(right_pane)
         self.load_settings()
 
+    def scroll_to_category(self, item):
+        """目次から指定したカテゴリにスクロール"""
+        category_name = item.text()
+        for i in range(self.scroll_layout.count()):
+            widget = self.scroll_layout.itemAt(i).widget()
+            if isinstance(widget, QLabel) and widget.text() == category_name:
+                self.scroll_area.ensureWidgetVisible(widget)
+                break
 
     def open_comparison_window(self):
         """未定義の設定を確認する"""
@@ -165,11 +183,11 @@ class GameSettings(QDialog):
                 widget.deleteLater()
 
         self.inputs.clear()
+        self.nav_list.clear()
 
         # INIファイルから設定を読み込み
         option_items = self.get_option_settings()
         if not option_items:
-            # 設定が存在しない場合は何もしない
             return
         # option_itemsの値を=で分割して、keyとvalueを取得
         option_items = {key: value for key, value in [item.split('=') for item in option_items]}
@@ -182,6 +200,8 @@ class GameSettings(QDialog):
             category_label = QLabel(category["name"])
             category_label.setStyleSheet("font-size: 16px; font-weight: bold;")
             self.scroll_layout.addWidget(category_label)
+
+            nav_item = QListWidgetItem(category["name"], self.nav_list)
 
             # setting_key_map.json（self.key_map）からcategoryに対応するキーを取得
             setting_keys = [key for key, value in self.key_map.items() if value.get("category") == category["key"]]
@@ -197,7 +217,8 @@ class GameSettings(QDialog):
                 # setting_key_map.json からキーに対応する情報を取得し処理
                 key_info = self.key_map.get(setting_key, {})
                 if key_info.get("hidden", False):
-                    continue  # 非表示設定をスキップ
+                    # 非表示設定をスキップ
+                    continue
 
                 # 表示処理
                 display_label = key_info.get("name", setting_key)
@@ -228,7 +249,6 @@ class GameSettings(QDialog):
 
             # カテゴリごとにスペースを追加
             label.setFixedHeight(30)
-            
 
     def create_input_field(self, key_info, value):
         """入力フィールドを作成"""
@@ -256,7 +276,6 @@ class GameSettings(QDialog):
         input_field.setFixedWidth(500)                  # 幅を固定
         input_field.setStyleSheet("margin-left: 15px;") # 左マージンを設定
         return input_field
-
 
     def save_settings(self):
         if self.setting_section not in self.config:
