@@ -23,6 +23,7 @@ Windows Server(または、Windows)
 [プラグイン](#Plugin)
 
 ## Reference
+[パルワールドサーバーアプリ](https://kmmr.jp/page-885/)
 
 ## Author
 
