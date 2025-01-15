@@ -3,6 +3,41 @@ import subprocess
 import psutil
 import discord
 
+async def update_server(steamcmd_path: str, install_dir: str, app_id: str) -> discord.Embed:
+    """
+    サーバーを起動する関数
+    """
+    try:
+        # 必要な設定値を取得
+        if not steamcmd_path or not os.path.exists(os.path.join(steamcmd_path, "steamcmd.exe")):
+            return discord.Embed(
+                title=f"エラー",
+                description=f"コマンドが失敗しました: steamcmdのパスが見つかりません。設定を確認してください。",
+                color=0xff0000
+            )
+
+        steamcmd_exe = os.path.join(steamcmd_path, "steamcmd.exe")
+        cmd = f"{steamcmd_exe} +force_install_dir {install_dir} +login anonymous +app_update {app_id} validate +quit"
+        subprocess.run(cmd, check=True)
+        return discord.Embed(
+            title=f"アップデート完了",
+            color=0x00ff00
+        )
+
+    except Exception as e:
+        if e.returncode == 7:
+            return discord.Embed(
+                title=f"警告",
+                description=f"Error: SteamCMD でエラーが発生しました。ステータスコード 7",
+                color=0xff0000
+            )
+        else:
+            return discord.Embed(
+                title=f"エラー",
+                description=f"コマンドが失敗しました: ステータスコード {e.returncode}",
+                color=0xff0000
+            )
+
 async def start_server(server_path: str, server_exe: str) -> discord.Embed:
     """
     サーバーを起動する関数

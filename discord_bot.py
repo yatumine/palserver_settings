@@ -7,10 +7,11 @@ import discord
 from discord.ext import tasks
 from discord import app_commands
 import psutil
-from lib.server_control import start_server, stop_server, check_server_status, check_memory_usage
+import asyncio
+from lib.server_control import update_server, start_server, stop_server, check_server_status, check_memory_usage
 
 class DiscordBot:
-    def __init__(self, token, channel_id, server_path, server_exe, server_cmd_exe, send_flag = True):
+    def __init__(self, token, channel_id, server_path, server_exe, server_cmd_exe, steamcmd_path, app_id, send_flag = True):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info("Initializing DiscordBot")
         self.token = token
@@ -20,6 +21,8 @@ class DiscordBot:
         self.server_cmd_exe = server_cmd_exe
         self.server_name = server_exe.split(".")[0]
         self.send_flag = send_flag
+        self.app_id = app_id
+        self.steamcmd_path = steamcmd_path
 
         # pluginsフォルダ内のプラグインを読み込む
         self._import_plugins()
@@ -46,10 +49,24 @@ class DiscordBot:
         self._register_commands()
 
 
+    async def _send_announcement(self, message: str):
+        """アナウンスを送信するヘルパー関数"""
+        if self.rest_api_plugin:
+            try:
+                self.rest_api_plugin.send_command("announce", "POST", {"message": message})
+            except Exception as e:
+                self.logger.error(f"Failed to send announcement: {e}")
+
     def _register_commands(self):
         self.logger.info("Registering commands")
 
-        # 既存のコマンドを登録
+        # コマンドを登録
+        @self.tree.command(name="update_server", description=f"SteamCMDとゲームサーバーのアップデートを行います")
+        async def update_server_command(interaction: discord.Interaction):
+            self.logger.info(f"Command executed: update_server by {interaction.user.name}")
+            embed = await update_server(self.steamcmd_path, self.server_path, self.app_id)
+            await self._interraction_send(interaction, embed)
+
         @self.tree.command(name="start_server", description=f"{self.server_exe}を起動します")
         async def start_server_command(interaction: discord.Interaction):
             self.logger.info(f"Command executed: start_server by {interaction.user.name}")
@@ -61,6 +78,41 @@ class DiscordBot:
             self.logger.info(f"Command executed: stop_server by {interaction.user.name}")
             embed = await stop_server(self.server_cmd_exe, self.server_exe)
             await self._interraction_send(interaction, embed)
+
+        @self.tree.command(name="restart_server", description="サーバーを再起動します")
+        async def restart_server_command(interaction: discord.Interaction, wait_minutes: int, update: bool ):
+            self.logger.info(f"Command executed: restart_server by {interaction.user.name}")
+
+            # 初期応答を即時送信
+            await interaction.response.send_message("サーバー再起動処理を開始します...", ephemeral=False)
+
+            # 再起動処理の進行を報告
+            await interaction.followup.send(f"{wait_minutes}分後にサーバーを停止します...", ephemeral=False)
+            if self.rest_api_plugin is not None:
+                await self._send_announcement(f"アナウンス: {wait_minutes}分後にサーバーが再起動されます。攻略中や作業中の方はご注意ください。")
+
+            if wait_minutes > 10:
+                for remaining in range(wait_minutes, 0, -10):
+                    await asyncio.sleep(10 * 60)
+                    await interaction.followup.send(f"あと{remaining}分でサーバーを停止します...", ephemeral=False)
+                    if self.rest_api_plugin is not None:
+                        await self._send_announcement(f"アナウンス: {wait_minutes}分後にサーバーが再起動されます。")
+            else:
+                await asyncio.sleep(wait_minutes * 60)
+
+            # サーバー停止
+            stop_embed = await stop_server(self.server_cmd_exe, self.server_exe)
+            await interaction.followup.send(embed=stop_embed, ephemeral=False)
+
+            # サーバーアップデート（必要な場合）
+            if update:
+                await interaction.followup.send("サーバーのアップデートを開始します...", ephemeral=False)
+                update_embed = await update_server(self.steamcmd_path, self.server_path, self.app_id)
+                await interaction.followup.send(embed=update_embed, ephemeral=False)
+
+            # サーバー再起動
+            start_embed = await start_server(self.server_path, self.server_exe)
+            await interaction.followup.send(embed=start_embed, ephemeral=False)
 
         @self.tree.command(name="check_server", description="現在サーバーが起動しているかを調べます")
         async def check_server_command(interaction: discord.Interaction):
@@ -86,8 +138,10 @@ class DiscordBot:
                 description="以下は利用可能なコマンドの一覧です。",
                 color=0x3498db
             )
+            embed.add_field(name="/update_server", value=f"SteamCMDとゲームサーバーのアップデートを行います。", inline=False)
             embed.add_field(name="/start_server", value=f"{self.server_exe}を起動します", inline=False)
             embed.add_field(name="/stop_server", value=f"{self.server_exe}を停止します", inline=False)
+            embed.add_field(name="/restart_server", value=f"{self.server_exe}を再起動します", inline=False)
             embed.add_field(name="/check_server", value="現在サーバーが起動しているかを調べます", inline=False)
             embed.add_field(name="/check_memory", value="現在のサーバーのメモリ使用量を調べます", inline=False)
             embed.add_field(name="/reset_commands", value="全てのスラッシュコマンドをリセット", inline=False)
@@ -115,15 +169,11 @@ class DiscordBot:
                 """
                 try:
                     self.logger.info(f"Command executed: send_announce by {interaction.user.name}")
-                    
-                    # REST API プラグインの send_command メソッドを使用
-                    response = self.rest_api_plugin.send_command("announce", "POST",{"message": message})
-
-                    # レスポンスを解析して送信
-                    await self._send_response(interaction, response, title="アナウンス", ephemeral=True)
+                    await self._send_announcement(message)
+                    await interaction.response.send_message("アナウンスを送信しました。", ephemeral=True)
                 except Exception as e:
                     self.logger.error(f"Error in send_rest_api_announce_command: {e}")
-                    await interaction.response.send_message(f"アナウンスに失敗しました: {e}", ephemeral=True)
+                    await interaction.response.send_message(f"アナウンスの送信に失敗しました: {e}", ephemeral=True)
 
             @self.tree.command(name="show_player", description="REST APIを使用してログイン中のプレイヤーを取得します")
             async def send_rest_api_show_player_command(interaction: discord.Interaction):

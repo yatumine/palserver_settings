@@ -346,6 +346,8 @@ class SettingsApp(QMainWindow):
         server_exe = AppConfig.get("server_exe")
         server_cmd_exe = AppConfig.get("server_cmd_exe")
         send_flag = AppConfig.get("discord_message_sent")
+        steamcmd_path = Config.get("steamcmd_path", "")
+        app_id = AppConfig.get("app_id", "")
 
         if not discord_token or not discord_channel_id:
             QMessageBox.warning(self, "エラー", "Discordの設定が完了していません。設定画面から設定を行ってください。")
@@ -359,7 +361,7 @@ class SettingsApp(QMainWindow):
 
         self.logger.info("starting Discord Bot...")
         try:
-            self.discord_bot_thread = DiscordBotThread(discord_token, discord_channel_id, server_path, server_exe, server_cmd_exe, send_flag)
+            self.discord_bot_thread = DiscordBotThread(discord_token, discord_channel_id, server_path, server_exe, server_cmd_exe, steamcmd_path, app_id, send_flag)
             self.discord_bot_thread.error_signal.connect(self.on_discord_bot_error)
             self.discord_bot_thread.start()
         except Exception as e:
@@ -435,9 +437,9 @@ class SettingsApp(QMainWindow):
 class DiscordBotThread(QThread):
     error_signal = Signal(str)
 
-    def __init__(self, token, channel_id, server_path, server_exe, server_cmd_exe, send_flag):
+    def __init__(self, token, channel_id, server_path, server_exe, server_cmd_exe, steamcmd_path, app_id, send_flag):
         super().__init__()
-        self.discord_bot = DiscordBot(token, channel_id, server_path, server_exe, server_cmd_exe, send_flag)
+        self.discord_bot = DiscordBot(token, channel_id, server_path, server_exe, server_cmd_exe, steamcmd_path, app_id, send_flag)
 
     def run(self):
         try:
