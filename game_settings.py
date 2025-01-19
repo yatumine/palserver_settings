@@ -3,6 +3,7 @@ import os
 import shutil
 import sys
 import json
+import re
 import configparser
 from PySide6.QtWidgets import (
     QApplication, QVBoxLayout, QLabel, QLineEdit, QPushButton, 
@@ -186,11 +187,15 @@ class GameSettings(QDialog):
         self.nav_list.clear()
 
         # INIファイルから設定を読み込み
+        logging.info(f"loading game settings.")
         option_items = self.get_option_settings()
         if not option_items:
+            logging.error(f"game setting is nothing.")
             return
-        # option_itemsの値を=で分割して、keyとvalueを取得
-        option_items = {key: value for key, value in [item.split('=') for item in option_items]}
+
+        # 取得したoption_itemsは辞書型
+        for key, value in option_items.items():
+            logging.info(f"  Key: {key}, Value: {value}")
 
         # category.json を読み込む
         categories = self.load_category()
@@ -321,16 +326,34 @@ class GameSettings(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "エラー", f"設定ファイルの保存に失敗しました: {str(e)}")
 
+    def parse_option_settings(self, option_settings_str):
+        """
+        option_settings_str をパースして辞書形式に変換する関数
+        """
+        # オプション設定の外側の括弧を取り除き、値をトークン化する
+        option_settings_str = option_settings_str.strip("()")
+        # カンマで区切りつつ、キーと値のペアを抽出（値がカンマを含む場合にも対応）
+        pattern = r'(\w+)=(".*?"|\'.*?\'|[^,]+)'
+        matches = re.findall(pattern, option_settings_str)
+
+        option_items = {}
+        for key, value in matches:
+            # 値から外側の引用符を削除
+            value = value.strip('"').strip("'")
+            option_items[key] = value
+        return option_items
+
     def get_option_settings(self):
         """設定のオプション部分を取得"""
         try:
             if self.setting_section in self.config:
                 settings = self.config[self.setting_section]
                 option_settings = settings.get(self.option_settings_key, None)
-                return option_settings.strip('()').split(',')
+                if option_settings:
+                    return self.parse_option_settings(option_settings)
         except Exception as e:
             QMessageBox.critical(self, "エラー", f"設定の取得に失敗しました: {str(e)}")
-        return ""
+        return {}
 
     def load_category(self):
         """カテゴリーを読み込む"""
