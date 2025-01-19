@@ -45,7 +45,7 @@ async def start_server(server_path: str, server_exe: str) -> discord.Embed:
     try:
         # server_pathとserver_exeを結合してサーバーを起動
         server_file = os.path.join(server_path, server_exe)
-        subprocess.run(["start", server_file], shell=True)
+        subprocess.run(["start", server_file, '-NoAsyncLoadingThread', '-UseMultithreadForDS'], shell=True)
         return discord.Embed(
             title=f"{server_exe}を起動しました",
             color=0x00ff00
