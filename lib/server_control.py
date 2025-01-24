@@ -1,5 +1,6 @@
 import os
 import subprocess
+import asyncio
 import psutil
 import discord
 
@@ -18,11 +19,26 @@ async def update_server(steamcmd_path: str, install_dir: str, app_id: str) -> di
 
         steamcmd_exe = os.path.join(steamcmd_path, "steamcmd.exe")
         cmd = f"{steamcmd_exe} +force_install_dir {install_dir} +login anonymous +app_update {app_id} validate +quit"
-        subprocess.run(cmd, check=True)
-        return discord.Embed(
-            title=f"アップデート完了",
-            color=0x00ff00
+        # 非同期に外部コマンドを実行
+        process = await asyncio.create_subprocess_shell(
+            cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
         )
+        stdout, stderr = await process.communicate()
+
+        if process.returncode == 0:
+            return discord.Embed(
+                title="アップデート完了",
+                description="コマンドが成功しました。",
+                color=0x00ff00
+            )
+        else:
+            return discord.Embed(
+                title="エラー",
+                description=f"コマンドが失敗しました。\nステータスコード: {process.returncode}",
+                color=0xff0000
+            )
 
     except Exception as e:
         if e.returncode == 7:

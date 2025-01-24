@@ -1,3 +1,4 @@
+import traceback
 import os
 import sys
 import logging
@@ -367,6 +368,8 @@ class SettingsApp(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "エラー", f"Discord Bot 起動中にエラーが発生しました: {e}")
             self.logger.error(f"Failed to start Discord Bot: {e}")
+            self.logger.error(traceback.format_exc())
+            return
         QMessageBox.information(self, "Discord Bot", "Discord Bot を起動しました。")
 
     def on_discord_bot_error(self, error_message):

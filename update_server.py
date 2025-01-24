@@ -66,10 +66,14 @@ class ServerUpdateWindow(QDialog):
             QMessageBox.warning(None, "Notice", "cmd: " + cmd)
             subprocess.run(cmd, check=True)
         except Exception as e:
-            if e.returncode == 7:
-                QMessageBox.warning(None, "警告", "SteamCMD でエラーが発生しました: ステータスコード 7")
+            # エラーコードを判定
+            if hasattr(e, "returncode"):
+                if e.returncode == 7:
+                    QMessageBox.warning(None, "警告", "SteamCMD でエラーが発生しました: ステータスコード 7")
+                else:
+                    QMessageBox.critical(None, "エラー", f"コマンドが失敗しました: ステータスコード {e.returncode}")
             else:
-                QMessageBox.critical(None, "エラー", f"コマンドが失敗しました: ステータスコード {e.returncode}")
+                QMessageBox.critical(None, "エラー", f"コマンドが失敗しました: {str(e)}")
 
         QMessageBox.information(None, "成功", "コマンドが正常に実行されました！")
 

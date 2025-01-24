@@ -3,12 +3,18 @@ import os
 import sys
 import json
 import importlib.util
+from typing import Union
+from datetime import datetime
 import discord
 from discord.ext import tasks
 from discord import app_commands
+from discord.app_commands import Choice
 import psutil
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 import asyncio
 from lib.server_control import update_server, start_server, stop_server, check_server_status, check_memory_usage
+from lib.config import Config
 
 class DiscordBot:
     def __init__(self, token, channel_id, server_path, server_exe, server_cmd_exe, steamcmd_path, app_id, send_flag = True):
@@ -23,6 +29,9 @@ class DiscordBot:
         self.send_flag = send_flag
         self.app_id = app_id
         self.steamcmd_path = steamcmd_path
+
+        # config読み込み
+        self.config = Config.load_config()
 
         # pluginsフォルダ内のプラグインを読み込む
         self._import_plugins()
@@ -39,6 +48,9 @@ class DiscordBot:
         self.is_first_run = True
         self.last_alert_level = None
         self.last_server_status = None
+
+        # Scheduler初期化
+        self.scheduler = AsyncIOScheduler()
 
         # Discordクライアントを初期化
         self.client = discord.Client(
@@ -60,60 +72,110 @@ class DiscordBot:
     def _register_commands(self):
         self.logger.info("Registering commands")
 
+        # 曜日選択のオプションを定義
+        weekday_choices = [
+            Choice(name="Monday", value="mon"),
+            Choice(name="Tuesday", value="tue"),
+            Choice(name="Wednesday", value="wed"),
+            Choice(name="Thursday", value="thu"),
+            Choice(name="Friday", value="fri"),
+            Choice(name="Saturday", value="sat"),
+            Choice(name="Sunday", value="sun"),
+        ]
+
         # コマンドを登録
         @self.tree.command(name="update_server", description=f"SteamCMDとゲームサーバーのアップデートを行います")
         async def update_server_command(interaction: discord.Interaction):
             self.logger.info(f"Command executed: update_server by {interaction.user.name}")
+            await self._interraction_send(interaction, "SteamCMDとゲームサーバーのアップデートを行います")
             embed = await update_server(self.steamcmd_path, self.server_path, self.app_id)
-            await self._interraction_send(interaction, embed)
+            await self._interraction_followup_send(interaction, embed)
+            self.logger.info(f"Command executed completes: update_server by {interaction.user.name}")
 
         @self.tree.command(name="start_server", description=f"{self.server_exe}を起動します")
         async def start_server_command(interaction: discord.Interaction):
             self.logger.info(f"Command executed: start_server by {interaction.user.name}")
             embed = await start_server(self.server_path, self.server_exe)
             await self._interraction_send(interaction, embed)
+            self.logger.info(f"Command executed completes: start_server by {interaction.user.name}")
 
         @self.tree.command(name="stop_server", description=f"{self.server_exe}を停止します")
         async def stop_server_command(interaction: discord.Interaction):
             self.logger.info(f"Command executed: stop_server by {interaction.user.name}")
             embed = await stop_server(self.server_cmd_exe, self.server_exe)
             await self._interraction_send(interaction, embed)
+            self.logger.info(f"Command executed completes: stop_server by {interaction.user.name}")
 
         @self.tree.command(name="restart_server", description="サーバーを再起動します")
         async def restart_server_command(interaction: discord.Interaction, wait_minutes: int, update: bool ):
             self.logger.info(f"Command executed: restart_server by {interaction.user.name}")
+            await self._interraction_send(interaction, "サーバーを再起動要求を受け付けました")
+            await self._restart_server(wait_minutes, update)
+            self.logger.info(f"Command executed completes: restart_server by {interaction.user.name}")
 
-            # 初期応答を即時送信
-            await interaction.response.send_message("サーバー再起動処理を開始します...", ephemeral=False)
+        @self.tree.command(name="add_restart_task", description="サーバー再起動タスクを追加します。指定した曜日、時間にサーバー再起動アナウンスを開始します。")
+        @app_commands.describe(
+            weekday="タスクを実行する曜日を選択してください。",
+            hour="タスクを実行する時間（0～23）",
+            minute="タスクを実行する分（0～59）",
+            repeat="繰り返し実行する場合はTrue、1回のみ実行する場合はFalseを指定します。"
+        )
+        @app_commands.choices(weekday=weekday_choices)
+        async def add_restart_task(interaction: discord.Interaction, weekday: Choice[str], hour: int, minute: int, repeat: bool):
+            task = {
+                "name": f"server_restart_{weekday.value}_{hour}_{minute}",
+                "weekday": weekday.value,
+                "hour": hour,
+                "minute": minute,
+                "repeat": repeat
+            }
+            self.logger.info(f"Command executed: add_restart_task by {interaction.user.name}")
+            self.logger.info(f"Task: {task}")
 
-            # 再起動処理の進行を報告
-            await interaction.followup.send(f"{wait_minutes}分後にサーバーを停止します...", ephemeral=False)
-            if self.rest_api_plugin is not None:
-                await self._send_announcement(f"アナウンス: {wait_minutes}分後にサーバーが再起動されます。攻略中や作業中の方はご注意ください。")
+            # 既存のタスクをチェックして上書きまたは追加
+            tasks = self.config.get("tasks", [])
+            updated = False
 
-            if wait_minutes > 10:
-                for remaining in range(wait_minutes, 0, -10):
-                    await asyncio.sleep(10 * 60)
-                    await interaction.followup.send(f"あと{remaining}分でサーバーを停止します...", ephemeral=False)
-                    if self.rest_api_plugin is not None:
-                        await self._send_announcement(f"アナウンス: {wait_minutes}分後にサーバーが再起動されます。")
+            for i, existing_task in enumerate(tasks):
+                if existing_task["name"] == task["name"]:
+                    tasks[i] = task  # 上書き
+                    updated = True
+                    break
+
+            if not updated:
+                tasks.append(task)  # 新規追加
+
+            # 設定ファイルに保存
+            try:
+                if repeat:
+                    # 繰り返しタスクの場合はCronTriggerを使用
+                    self.config["tasks"] = tasks
+                    Config.set("tasks", tasks)
+            except Exception as e:
+                await interaction.response.send_message(
+                    f"エラー: タスク設定の保存中に問題が発生しました: {e}", ephemeral=True
+                )
+                return
+
+            # スケジュール登録
+            try:
+                await self.schedule_task(task)
+            except Exception as e:
+                await interaction.response.send_message(
+                    f"エラー: タスクスケジュールの登録中に問題が発生しました: {e}", ephemeral=True
+                )
+                return
+
+            # 成功レスポンス
+            if updated:
+                await interaction.response.send_message(
+                    f"タスク '{task['name']}' を更新しました: {weekday.name} {hour}:{minute} 繰り返し: {repeat}"
+                )
             else:
-                await asyncio.sleep(wait_minutes * 60)
-
-            # サーバー停止
-            stop_embed = await stop_server(self.server_cmd_exe, self.server_exe)
-            await interaction.followup.send(embed=stop_embed, ephemeral=False)
-
-            # サーバーアップデート（必要な場合）
-            if update:
-                await interaction.followup.send("サーバーのアップデートを開始します...", ephemeral=False)
-                update_embed = await update_server(self.steamcmd_path, self.server_path, self.app_id)
-                await interaction.followup.send(embed=update_embed, ephemeral=False)
-
-            # サーバー再起動
-            start_embed = await start_server(self.server_path, self.server_exe)
-            await interaction.followup.send(embed=start_embed, ephemeral=False)
-
+                await interaction.response.send_message(
+                    f"タスク '{task['name']}' を追加しました: {weekday.name} {hour}:{minute} 繰り返し: {repeat}"
+                )
+                
         @self.tree.command(name="check_server", description="現在サーバーが起動しているかを調べます")
         async def check_server_command(interaction: discord.Interaction):
             self.logger.info(f"Command executed: check_server by {interaction.user.name}")
@@ -123,12 +185,14 @@ class DiscordBot:
                 color=0x00ff00 if status else 0xff0000
             )
             await self._interraction_send(interaction, embed, ephemeral=True)
+            self.logger.info(f"Command executed completes: check_server by {interaction.user.name}")
 
         @self.tree.command(name="check_memory", description="現在のサーバーのメモリ使用量を調べます")
         async def check_memory_command(interaction: discord.Interaction):
             self.logger.info(f"Command executed: check_memory by {interaction.user.name}")
             embed = await check_memory_usage()
             await self._interraction_send(interaction, embed)
+            self.logger.info(f"Command executed completes: check_memory by {interaction.user.name}")
 
         @self.tree.command(name="help", description="利用可能なコマンド一覧を表示します")
         async def help_command(interaction: discord.Interaction):
@@ -152,6 +216,7 @@ class DiscordBot:
                 embed.add_field(name="/show_metrics", value="REST APIを使用してサーバー メトリックを取得します", inline=False)
             embed.add_field(name="/help", value="利用可能なコマンド一覧を表示します", inline=False)
             await self._interraction_send(interaction, embed, ephemeral=True)
+            self.logger.info(f"Command executed completes: help by {interaction.user.name}")
 
         @self.tree.command(name="reset_commands", description="全てのスラッシュコマンドをリセット")
         async def reset_commands(interaction: discord.Interaction):
@@ -171,6 +236,7 @@ class DiscordBot:
                     self.logger.info(f"Command executed: send_announce by {interaction.user.name}")
                     await self._send_announcement(message)
                     await interaction.response.send_message("アナウンスを送信しました。", ephemeral=True)
+                    self.logger.info(f"Command executed completes: send_announce by {interaction.user.name}")
                 except Exception as e:
                     self.logger.error(f"Error in send_rest_api_announce_command: {e}")
                     await interaction.response.send_message(f"アナウンスの送信に失敗しました: {e}", ephemeral=True)
@@ -189,6 +255,7 @@ class DiscordBot:
 
                     # レスポンスを解析して送信
                     await self._send_response(interaction, response, title="ログイン中のプレイヤー", ephemeral=True)
+                    self.logger.info(f"Command executed completes: show_player by {interaction.user.name}")
                 except Exception as e:
                     self.logger.error(f"Error in send_rest_api_show_player_command: {e}")
                     await interaction.response.send_message(f"ログイン中のプレイヤー取得に失敗しました: {e}", ephemeral=True)
@@ -207,6 +274,7 @@ class DiscordBot:
                     
                     # レスポンスを解析して送信
                     await self._send_response(interaction, response, title="サーバー設定", ephemeral=True)
+                    self.logger.info(f"Command executed completes: show_settings by {interaction.user.name}")
                 except Exception as e:
                     self.logger.error(f"Error in send_rest_api_show_settings_command: {e}")
                     await interaction.response.send_message(f"サーバー設定取得に失敗しました: {e}", ephemeral=True)
@@ -225,6 +293,8 @@ class DiscordBot:
                     
                     # レスポンスを解析して送信
                     await self._send_response(interaction, response, title="サーバー メトリック", ephemeral=True)
+
+                    self.logger.info(f"Command executed completes: show_metrics by {interaction.user.name}")
                 except Exception as e:
                     self.logger.error(f"Error in send_rest_api_show_metrics_command: {e}")
                     await interaction.response.send_message(f"サーバー メトリック取得に失敗しました: {e}", ephemeral=True)
@@ -272,9 +342,120 @@ class DiscordBot:
             self.logger.error(f"Failed to send response: {e}")
             await interaction.followup.send(f"レスポンス送信中にエラーが発生しました: {e}", ephemeral=True)
 
-    async def _interraction_send(self, interaction, embed, ephemeral=False):
+    async def _interraction_send(
+        self, 
+        interaction, 
+        *args: Union[str, discord.Embed],
+        ephemeral: bool = False
+    ):
         if self.send_flag:
-            await interaction.response.send_message(embed=embed, ephemeral=ephemeral)
+            if len(args) == 1:  # 1つだけ引数が渡された場合
+                if isinstance(args[0], discord.Embed):  # Embedの場合
+                    await interaction.response.send_message(embed=args[0], ephemeral=ephemeral)
+                elif isinstance(args[0], str):  # 文字列の場合
+                    await interaction.response.send_message(content=args[0], ephemeral=ephemeral)
+                else:
+                    raise TypeError("位置引数には文字列または discord.Embed を指定してください。")
+            elif len(args) == 0:
+                raise ValueError("位置引数が不足しています。content または embed を指定してください。")
+            else:
+                raise ValueError("複数の位置引数が渡されました。content または embed のみ指定してください。")
+        
+    async def _interraction_followup_send(
+        self, 
+        interaction, 
+        *args: Union[str, discord.Embed],
+        ephemeral: bool = False
+    ):
+        if self.send_flag:
+            if len(args) == 1:  # 1つだけ引数が渡された場合
+                if isinstance(args[0], discord.Embed):  # Embedの場合
+                    await interaction.followup.send(embed=args[0], ephemeral=ephemeral)
+                elif isinstance(args[0], str):  # 文字列の場合
+                    await interaction.followup.send(content=args[0], ephemeral=ephemeral)
+                else:
+                    raise TypeError("位置引数には文字列または discord.Embed を指定してください。")
+            elif len(args) == 0:
+                raise ValueError("位置引数が不足しています。content または embed を指定してください。")
+            else:
+                raise ValueError("複数の位置引数が渡されました。content または embed のみ指定してください。")
+
+    async def _restart_server(self, wait_minutes: int, update: bool ):
+        self.logger.info(f"Task executed: restart_server")
+
+        channel = self.client.get_channel(self.channel_id)  # チャンネルIDからチャンネルを取得
+        # メッセージを投稿する
+        embed = discord.Embed(
+            title="サーバー再起動アナウンス",
+            description="これより、サーバー再起動を開始します。"
+        )
+        if channel and self.send_flag:
+            await channel.send(embed=embed)
+
+        # 再起動処理の進行を報告
+        if wait_minutes > 10:
+            #10分以上の処理
+            for remaining in range(wait_minutes, 0, -10):
+                if channel and self.send_flag:
+                    await channel.send(
+                        embed = discord.Embed(
+                            title="サーバー再起動アナウンス",
+                            description=f"あと{remaining}分後にサーバーが再起動されます。攻略中や作業中の方はご注意ください。"
+                        )
+                    )
+                if self.rest_api_plugin is not None:
+                    await self._send_announcement(f"アナウンス: {remaining}分後にサーバーが再起動されます。攻略中や作業中の方はご注意ください。")
+                await asyncio.sleep(600)
+
+            # 残り時間が10分未満の場合の通知
+            if wait_minutes % 10 != 0:
+                remaining = wait_minutes % 10
+                if channel and self.send_flag:
+                    await channel.send(
+                        embed = discord.Embed(
+                            title="サーバー再起動アナウンス",
+                            description=f"あと{remaining}分後にサーバーが再起動されます。攻略中や作業中の方はご注意ください。"
+                        )
+                    )
+                if self.rest_api_plugin is not None:
+                    await self._send_announcement(f"アナウンス: {remaining}分後にサーバーが再起動されます。攻略中や作業中の方はご注意ください。")
+                await asyncio.sleep(remaining * 60)
+        else:
+            # 10分以下の処理
+            if channel and self.send_flag:
+                await channel.send(
+                    embed = discord.Embed(
+                        title="サーバー再起動アナウンス",
+                        description=f"あと{wait_minutes}分後にサーバーが再起動されます。攻略中や作業中の方はご注意ください。"
+                    )
+                )
+            if self.rest_api_plugin is not None:
+                await self._send_announcement(f"アナウンス: {wait_minutes}分後にサーバーが再起動されます。攻略中や作業中の方はご注意ください。")
+            await asyncio.sleep(wait_minutes * 60)
+
+        # サーバー停止
+        stop_embed = await stop_server(self.server_cmd_exe, self.server_exe)
+        if channel and self.send_flag:
+            await channel.send(embed=stop_embed)
+
+        # サーバーアップデート（必要な場合）
+        if update:
+            if channel and self.send_flag:
+                await channel.send(
+                    embed = discord.Embed(
+                        title="サーバーアップデート",
+                        description=f"サーバーのアップデートを開始します。"
+                    )
+                )
+            update_embed = await update_server(self.steamcmd_path, self.server_path, self.app_id)
+            if channel and self.send_flag:
+                await channel.send(embed = update_embed)
+
+        # サーバー再起動
+        start_embed = await start_server(self.server_path, self.server_exe)
+        if channel and self.send_flag:
+            await channel.send(embed = start_embed)
+        self.logger.info(f"Task executed completes: restart_server")
 
     @tasks.loop(minutes=1)  # 毎分チェック
     async def memory_check_task(self):
@@ -338,7 +519,7 @@ class DiscordBot:
             if channel and self.send_flag:
                 await channel.send(embed=embed)
 
-    @tasks.loop(minutes=1)  # サーバー状態の監視
+    @tasks.loop(seconds=5)  # サーバー状態の監視
     async def server_status_check_task(self):
         current_status = await check_server_status(self.server_exe)
 
@@ -417,12 +598,64 @@ class DiscordBot:
                 except Exception as e:
                     self.logger.error(f"プラグイン {plugin_name} のロードに失敗しました: {e}")
 
+    async def schedule_task(self, task):
+        weekday = task['weekday']
+        hour = task['hour']
+        minute = task['minute']
+        repeat = task['repeat']  # True: 毎回, False: 1回のみ
+
+        # CronTrigger を作成
+        trigger = CronTrigger(day_of_week=weekday, hour=hour, minute=minute)
+
+        # 事前にイベントループを取得して保存
+        main_loop = asyncio.get_running_loop()
+
+        # タスクの登録
+        if repeat:
+            # 繰り返しタスク
+            self.scheduler.add_job(
+                lambda: asyncio.run_coroutine_threadsafe(self._restart_server(60, True), main_loop),
+                trigger,
+                id=f"{task['name']}_{weekday}_{hour}_{minute}",
+                replace_existing=True
+            )
+            self.logger.info(f"繰り返しタスクをスケジュール: {weekday} {hour}:{minute}")
+        else:
+            # 1回のみタスク
+            self.scheduler.add_job(
+                lambda: asyncio.run_coroutine_threadsafe(self._restart_server(60, True), main_loop),
+                trigger,
+                id=f"{task['name']}_{weekday}_{hour}_{minute}",
+                replace_existing=True,
+                next_run_time=trigger.get_next_fire_time(datetime.now())  # 次回実行時刻を設定
+            )
+            self.logger.info(f"1回限りのタスクをスケジュール: {weekday} {hour}:{minute}")
+
+    async def load_scheduled_tasks(self):
+        """スケジュールタスクをロード"""
+        try:
+            tasks = self.config.get('tasks', [])
+            for task in tasks:
+                self.logger.info(f"タスクのスケジュールを実施... {task}")
+                await self.schedule_task(task)
+            self.logger.info(f"{len(tasks)}件のタスクをスケジュールしました")
+        except Exception as e:
+            self.logger.error(f"Error during load_scheduled_tasks: {e}")
+
     async def _on_ready(self):
         self.logger.info("Bot is ready")
         try:
             await self.tree.sync()  # コマンドを同期
             await self.client.wait_until_ready()
             channel = self.client.get_channel(self.channel_id)  # チャンネルIDからチャンネルを取得
+
+            # スケジューラを開始
+            self.logger.info("Starting scheduler")
+            self.scheduler.start()
+
+            # スケジュールタスクをロード
+            await self.load_scheduled_tasks()
+
             # メッセージを投稿する
             embed = discord.Embed(
                 title="Botが起動しました",

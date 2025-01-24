@@ -66,6 +66,10 @@ class RestAPIPlugin(PluginBase):
 
             # JSON形式かどうかを判定
             try:
+                # responseがOKだけの場合、メッセージのみ返す
+                self.logger.info(f"レスポンス: {response.text.strip()}", exc_info=True)
+                if response.text.strip() == "OK":
+                    return {"message": "OK"}
                 return response.json()
             except json.JSONDecodeError:
                 self.logger.error(f"レスポンスがJSON形式ではありません: {response.text}", exc_info=True)
